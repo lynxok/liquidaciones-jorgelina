@@ -481,8 +481,32 @@
             <form @submit.prevent="submitUpload()">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nombre del Período</label>
-                        <input type="text" x-model="uploadPeriodName" required placeholder="Ej: Septiembre 2026" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Período a Conciliar</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <select x-model="selectedUploadMonth" class="w-full px-3 py-2 text-sm font-medium border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                                    <option value="Enero">Enero</option>
+                                    <option value="Febrero">Febrero</option>
+                                    <option value="Marzo">Marzo</option>
+                                    <option value="Abril">Abril</option>
+                                    <option value="Mayo">Mayo</option>
+                                    <option value="Junio">Junio</option>
+                                    <option value="Julio">Julio</option>
+                                    <option value="Agosto">Agosto</option>
+                                    <option value="Septiembre">Septiembre</option>
+                                    <option value="Octubre">Octubre</option>
+                                    <option value="Noviembre">Noviembre</option>
+                                    <option value="Diciembre">Diciembre</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select x-model="selectedUploadYear" class="w-full px-3 py-2 text-sm font-medium border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                                    <template x-for="y in availableYears" :key="y">
+                                        <option :value="y" x-text="y"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs text-blue-900 flex items-start space-x-2">
@@ -490,22 +514,37 @@
                         <span>Sube la <strong>Liquidación OSDE (.pdf)</strong> y las <strong>planillas de los profesionales (.pdf)</strong>. El sistema validará que las fechas de emisión coincidan y guardará los respaldos en Supabase.</span>
                     </div>
 
-                    <div class="border-2 border-dashed border-blue-300 bg-blue-50/30 hover:bg-blue-50/60 transition rounded-xl p-6 text-center cursor-pointer">
+                    <div class="border-2 border-dashed border-blue-300 bg-blue-50/30 hover:bg-blue-50/60 transition rounded-xl p-5 text-center cursor-pointer">
                         <input type="file" multiple id="pdfFiles" class="hidden" accept=".pdf" @change="handleFilesSelected">
                         <label for="pdfFiles" class="cursor-pointer block">
-                            <i class="fa-solid fa-file-pdf text-4xl text-blue-500 mb-2"></i>
+                            <i class="fa-solid fa-file-pdf text-3xl text-blue-500 mb-2"></i>
                             <p class="text-sm font-semibold text-slate-800">Seleccionar o soltar archivos PDF</p>
-                            <p class="text-xs text-slate-500 mt-1">OSDE + Liquidaciones individuales</p>
-                            <div x-show="selectedFilesCount > 0" class="mt-2 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                <i class="fa-solid fa-check mr-1"></i> <span x-text="selectedFilesCount + ' archivos seleccionados'"></span>
-                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">Liquidación OSDE + Planillas de profesionales</p>
                         </label>
+                    </div>
+
+                    <!-- Lista en vivo de archivos identificados -->
+                    <div x-show="parsedFilesList.length > 0" class="space-y-1.5 max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1">Archivos detectados:</p>
+                        <template x-for="(f, idx) in parsedFilesList" :key="idx">
+                            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs"
+                                 :class="f.isOsde ? 'bg-blue-50/80 border-blue-200 text-blue-900' : 'bg-white border-slate-200 text-slate-800'">
+                                <div class="flex items-center space-x-2 truncate mr-2">
+                                    <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
+                                    <span class="font-bold" x-text="f.isOsde ? 'Archivo de OSDE' : 'Médico: ' + f.medico"></span>
+                                    <span class="text-[10px] text-slate-400 truncate" x-text="'(' + f.rawName + ')'"></span>
+                                </div>
+                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                      :class="f.isOsde ? 'bg-blue-600 text-white' : 'bg-emerald-100 text-emerald-800'"
+                                      x-text="f.isOsde ? 'OSDE General' : 'Profesional'"></span>
+                            </div>
+                        </template>
                     </div>
 
                     <div class="pt-1 border-t border-slate-100">
                         <label class="flex items-center space-x-2 text-xs text-slate-500 cursor-pointer">
                             <input type="checkbox" id="useExisting" x-model="useExistingFolderFiles" class="rounded text-blue-600">
-                            <span>Modo desarrollador: usar PDFs locales de prueba si no selecciono nada</span>
+                            <span>Modo desarrollador: usar PDFs locales de prueba</span>
                         </label>
                     </div>
                 </div>
@@ -529,7 +568,9 @@
                 loading: true,
                 showUploadModal: false,
                 uploadLoading: false,
-                uploadPeriodName: '',
+                selectedUploadMonth: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][new Date().getMonth()],
+                selectedUploadYear: new Date().getFullYear(),
+                availableYears: [new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1],
                 useExistingFolderFiles: false,
                 selectedFilesCount: 0,
                 searchRechazo: '',
@@ -616,15 +657,42 @@
                     return this.profItems.filter(p => p.profesional === this.selectedProfName);
                 },
 
+                parsedFilesList: [],
+
                 handleFilesSelected(e) {
-                    this.selectedFilesCount = e.target.files.length;
+                    const files = Array.from(e.target.files);
+                    this.selectedFilesCount = files.length;
+                    this.parsedFilesList = [];
+
+                    files.forEach(f => {
+                        const name = f.name;
+                        const nameLower = name.toLowerCase();
+                        const isOsde = nameLower.includes('osde');
+                        
+                        let medico = '';
+                        if (!isOsde) {
+                            // Extraer nombre del médico desde el nombre del archivo (ej: liquidacionAriel.pdf -> Ariel)
+                            let clean = name.replace(/\.pdf$/i, '');
+                            clean = clean.replace(/^(liquidacion|liq|planilla)[_\-\s]*/i, '');
+                            // Si tiene formato camelCase o guiones, limpiarlo
+                            if (!clean) clean = name;
+                            medico = clean.charAt(0).toUpperCase() + clean.slice(1);
+                        }
+
+                        this.parsedFilesList.push({
+                            rawName: name,
+                            isOsde: isOsde,
+                            medico: medico
+                        });
+                    });
                 },
 
                 async submitUpload() {
                     this.uploadLoading = true;
                     try {
+                        const periodName = `${this.selectedUploadMonth} ${this.selectedUploadYear}`;
                         let formData = new FormData();
-                        formData.append('period_name', this.uploadPeriodName);
+                        formData.append('period_name', periodName);
                         formData.append('use_existing', this.useExistingFolderFiles);
 
                         if (!this.useExistingFolderFiles) {
