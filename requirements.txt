@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+jinja2
+pypdf
+pdfplumber
+psycopg2-binary
+python-multipart
+mangum
