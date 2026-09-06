@@ -189,6 +189,17 @@ def init_db():
             expira_en TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '90 days')
         )
     ''')
+
+    # Table: profesionales_perfiles (Historial unico de medicos y sus avatares)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS profesionales_perfiles (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT UNIQUE NOT NULL,
+            avatar_url TEXT,
+            color TEXT DEFAULT 'blue',
+            actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     
     conn.commit()
     conn.close()

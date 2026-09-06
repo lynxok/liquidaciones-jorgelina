@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conciliación de Liquidaciones OSDE - Centro Odontológico</title>
+    <link rel="icon" type="image/jpeg" href="/static/logo_ls.jpeg">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -39,7 +40,7 @@
     <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <img src="/static/logo_ls.jpeg" alt="LS Odontología" class="w-11 h-11 rounded-xl object-cover shadow border border-slate-200" onerror="this.style.display='none'">
+                <img src="/static/logo_ls.jpeg" alt="LS Odontología" class="w-11 h-11 rounded-xl object-cover shadow border border-slate-200">
                 <div>
                     <h1 class="text-lg font-bold leading-tight text-slate-900">Auditoría & Liquidaciones OSDE</h1>
                     <p class="text-xs text-blue-600 font-semibold tracking-wide uppercase">LS Odontología</p>
@@ -83,6 +84,12 @@
                 <button @click="currentTab = 'profesionales'" :class="currentTab === 'profesionales' ? 'border-emerald-600 text-emerald-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-4 px-1 border-b-2 text-sm flex items-center space-x-2">
                     <i class="fa-solid fa-user-doctor"></i>
                     <span>Liquidación por Profesional</span>
+                </button>
+
+                <button @click="currentTab = 'equipo'" :class="currentTab === 'equipo' ? 'border-purple-600 text-purple-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-4 px-1 border-b-2 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Equipo Médico & Fotos</span>
+                    <span x-show="perfilesMedicos.length > 0" class="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full" x-text="perfilesMedicos.length"></span>
                 </button>
 
                 <button @click="currentTab = 'cruce'" :class="currentTab === 'cruce' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-4 px-1 border-b-2 text-sm flex items-center space-x-2">
@@ -268,12 +275,19 @@
                     <div class="space-y-6">
                         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4">
-                                <div>
-                                    <h2 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
-                                        <i class="fa-solid fa-user-doctor text-blue-600"></i>
-                                        <span x-text="currentProfData.profesional"></span>
-                                    </h2>
-                                    <p class="text-xs text-slate-500 mt-1">Archivo de origen: <span class="font-mono" x-text="currentProfData.archivo"></span></p>
+                                <div class="flex items-center space-x-4">
+                                    <template x-if="getDoctorAvatar(currentProfData.profesional)">
+                                        <img :src="getDoctorAvatar(currentProfData.profesional)" class="w-14 h-14 rounded-full object-cover shadow border-2 border-blue-500">
+                                    </template>
+                                    <template x-if="!getDoctorAvatar(currentProfData.profesional)">
+                                        <div class="w-14 h-14 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-sm border border-blue-200">
+                                            <i class="fa-solid fa-user-doctor"></i>
+                                        </div>
+                                    </template>
+                                    <div>
+                                        <h2 class="text-xl font-bold text-slate-900" x-text="currentProfData.profesional"></h2>
+                                        <p class="text-xs text-slate-500 mt-0.5">Archivo de origen: <span class="font-mono" x-text="currentProfData.archivo"></span></p>
+                                    </div>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold block">Neto Final a Cobrar</span>
@@ -353,6 +367,55 @@
                         </div>
                     </div>
                 </template>
+            </div>
+
+            <!-- TAB NUEVO: EQUIPO MÉDICO & FOTOS DE PERFIL -->
+            <div x-show="currentTab === 'equipo'" class="space-y-6">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-users text-purple-600"></i>
+                            <span>Historial Consolidado del Equipo Médico</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">El sistema detecta automáticamente a los profesionales conciliados. Puedes asignarles o cambiarles su foto de perfil en cualquier momento.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="medico in perfilesMedicos" :key="medico.id">
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center text-center relative group hover:border-purple-300 hover:shadow-md transition">
+                            <!-- Avatar con preview -->
+                            <div class="relative mb-4">
+                                <template x-if="medico.avatar_url">
+                                    <img :src="medico.avatar_url" class="w-24 h-24 rounded-full object-cover shadow-md border-2 border-purple-500">
+                                </template>
+                                <template x-if="!medico.avatar_url">
+                                    <div class="w-24 h-24 rounded-full bg-purple-50 border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-purple-500 shadow-sm">
+                                        <i class="fa-solid fa-user-doctor text-3xl"></i>
+                                        <span class="text-[10px] font-semibold mt-1">Sin foto</span>
+                                    </div>
+                                </template>
+                                <label :for="'avatarInput-' + medico.id" class="absolute bottom-0 right-0 bg-purple-600 hover:bg-purple-700 text-white w-8 h-8 rounded-full flex items-center justify-center shadow cursor-pointer transition">
+                                    <i class="fa-solid fa-camera text-xs"></i>
+                                    <input type="file" :id="'avatarInput-' + medico.id" accept="image/*" class="hidden" @change="uploadDoctorAvatar($event, medico)">
+                                </label>
+                            </div>
+
+                            <h3 class="font-bold text-slate-900 text-base" x-text="medico.nombre"></h3>
+                            <span class="text-[11px] font-semibold px-3 py-0.5 rounded-full bg-slate-100 text-slate-600 mt-1 mb-4">Odontología Integral</span>
+
+                            <div class="w-full pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                                <span class="flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                                    <span>Sincronizado</span>
+                                </span>
+                                <label :for="'avatarInput-' + medico.id" class="text-purple-600 hover:text-purple-800 font-semibold cursor-pointer">
+                                    <span x-text="medico.avatar_url ? 'Cambiar Foto' : 'Subir Foto'"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </template>
+                </div>
             </div>
 
             <!-- TAB 4: AUDITORÍA DE CRUCE -->
@@ -584,9 +647,55 @@
                 rechazos: [],
                 profItems: [],
                 logsAjustes: [],
+                perfilesMedicos: [],
 
                 async init() {
                     await this.loadPeriodos();
+                    await this.loadProfesionales();
+                },
+
+                async loadProfesionales() {
+                    try {
+                        const res = await fetch('/api/profesionales');
+                        this.perfilesMedicos = await res.json();
+                    } catch (e) {
+                        console.error("Error cargando perfiles de medicos:", e);
+                    }
+                },
+
+                async uploadDoctorAvatar(event, medico) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    // Convertir imagen a Base64
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const base64Url = e.target.result;
+                        medico.avatar_url = base64Url;
+                        try {
+                            const res = await fetch('/api/profesionales/avatar', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    nombre: medico.nombre,
+                                    avatar_url: base64Url
+                                })
+                            });
+                            const result = await res.json();
+                            if (!result.success) {
+                                alert("No se pudo guardar la foto");
+                            }
+                        } catch (err) {
+                            alert("Error al guardar la foto: " + err.message);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                },
+
+                getDoctorAvatar(profName) {
+                    if (!profName) return null;
+                    const found = this.perfilesMedicos.find(m => m.nombre.toLowerCase().trim() === profName.toLowerCase().trim());
+                    return found ? found.avatar_url : null;
                 },
 
                 async loadPeriodos() {

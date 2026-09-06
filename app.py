@@ -31,6 +31,14 @@ def index():
     index_path = os.path.join(TEMPLATES_DIR, "index.html")
     return FileResponse(index_path)
 
+@app.get("/static/logo_ls.jpeg")
+@app.get("/favicon.ico")
+def get_logo():
+    logo_path = os.path.join(STATIC_DIR, "logo_ls.jpeg")
+    if os.path.exists(logo_path):
+        return FileResponse(logo_path, media_type="image/jpeg")
+    return JSONResponse(status_code=404, content={"error": "Logo no encontrado"})
+
 @app.get("/api/heartbeat")
 def heartbeat():
     """Heartbeat keep-alive para mantener despierta la base de datos de Supabase y purgar archivos expirados."""
@@ -47,6 +55,44 @@ def heartbeat():
         print("Error en purga automatica:", e)
         
     return {"status": "ok", "db": "connected", "alive": res.get("alive") if res else 1}
+
+@app.get("/api/profesionales")
+def get_profesionales():
+    """Obtiene el historial consolidado de todos los medicos sincronizados y sus fotos de perfil."""
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    # Asegurar que todos los que estan en liquidaciones existan en perfiles
+    c.execute('''
+        INSERT INTO profesionales_perfiles (nombre)
+        SELECT DISTINCT profesional FROM liquidacion_resumen_profesional
+        ON CONFLICT (nombre) DO NOTHING
+    ''')
+    conn.commit()
+    
+    c.execute("SELECT * FROM profesionales_perfiles ORDER BY nombre ASC")
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+from pydantic import BaseModel
+
+class AvatarUpdateRequest(BaseModel):
+    nombre: str
+    avatar_url: str
+
+@app.post("/api/profesionales/avatar")
+def update_avatar(req: AvatarUpdateRequest):
+    """Guarda o actualiza la foto de avatar (URL o base64) de un medico en Supabase."""
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO profesionales_perfiles (nombre, avatar_url, actualizado_en)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT (nombre) DO UPDATE SET avatar_url = EXCLUDED.avatar_url, actualizado_en = CURRENT_TIMESTAMP
+    ''', (req.nombre, req.avatar_url))
+    conn.commit()
+    conn.close()
+    return {"success": True}
 
 @app.get("/api/periodos")
 def get_periodos():
