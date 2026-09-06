@@ -39,6 +39,22 @@ def get_logo():
         return FileResponse(logo_path, media_type="image/jpeg")
     return JSONResponse(status_code=404, content={"error": "Logo no encontrado"})
 
+@app.get("/static/icon-192.png")
+@app.get("/icon-192.png")
+def get_icon_192():
+    icon_path = os.path.join(STATIC_DIR, "icon-192.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    return JSONResponse(status_code=404, content={"error": "Icono no encontrado"})
+
+@app.get("/static/icon-512.png")
+@app.get("/icon-512.png")
+def get_icon_512():
+    icon_path = os.path.join(STATIC_DIR, "icon-512.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    return JSONResponse(status_code=404, content={"error": "Icono no encontrado"})
+
 @app.get("/manifest.json")
 def get_manifest():
     manifest_path = os.path.join(STATIC_DIR, "manifest.json")
