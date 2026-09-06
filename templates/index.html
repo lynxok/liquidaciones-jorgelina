@@ -106,8 +106,8 @@
                 </button>
 
                 <button @click="currentTab = 'equipo'" :class="currentTab === 'equipo' ? 'border-purple-600 text-purple-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-3 sm:py-4 px-1 border-b-2 text-xs sm:text-sm flex items-center space-x-1.5 shrink-0 transition">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Equipo & Fotos</span>
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>Configurador de Médicos</span>
                     <span x-show="perfilesMedicos.length > 0" class="bg-purple-100 text-purple-700 text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded-full" x-text="perfilesMedicos.length"></span>
                 </button>
 
@@ -153,7 +153,7 @@
             <!-- TAB 1: RESUMEN GENERAL -->
             <div x-show="currentTab === 'resumen'" class="space-x-0 space-y-6">
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Liquidado por OSDE</span>
@@ -169,7 +169,7 @@
                             <span class="p-2 bg-purple-50 text-purple-600 rounded-lg text-sm"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                         </div>
                         <p class="text-2xl font-bold text-slate-900 mt-2" x-text="formatCurrency(periodoActual.total_prof_declarado)"></p>
-                        <p class="text-xs text-slate-500 mt-1">Suma de planillas de profesionales</p>
+                        <p class="text-xs text-slate-500 mt-1">Suma de planillas presentadas</p>
                     </div>
 
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -178,16 +178,25 @@
                             <span class="p-2 bg-rose-50 text-rose-600 rounded-lg text-sm"><i class="fa-solid fa-circle-xmark"></i></span>
                         </div>
                         <p class="text-2xl font-bold text-rose-600 mt-2" x-text="formatCurrency(periodoActual.total_rechazados_monto)"></p>
-                        <p class="text-xs text-slate-500 mt-1"><span class="font-bold text-rose-700" x-text="periodoActual.total_rechazados_cant"></span> prestaciones rechazadas</p>
+                        <p class="text-xs text-slate-500 mt-1"><span class="font-bold text-rose-700" x-text="periodoActual.total_rechazados_cant"></span> rechazadas OSDE</p>
                     </div>
 
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Diferencia Neta OSDE</span>
-                            <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm"><i class="fa-solid fa-scale-balanced"></i></span>
+                            <span class="p-2 bg-slate-50 text-slate-600 rounded-lg text-sm"><i class="fa-solid fa-scale-balanced"></i></span>
                         </div>
-                        <p class="text-2xl font-bold mt-2" :class="periodoActual.diferencia_neta >= 0 ? 'text-emerald-600' : 'text-amber-600'" x-text="formatCurrency(periodoActual.diferencia_neta)"></p>
-                        <p class="text-xs text-slate-500 mt-1">OSDE vs Total presentado</p>
+                        <p class="text-2xl font-bold mt-2" :class="periodoActual.diferencia_neta >= 0 ? 'text-slate-800' : 'text-amber-600'" x-text="formatCurrency(periodoActual.diferencia_neta)"></p>
+                        <p class="text-xs text-slate-500 mt-1">Ajuste aranceles OSDE</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-5 rounded-xl shadow-sm border border-emerald-500">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-100 uppercase tracking-wider">Total a Pagar a Médicos</span>
+                            <span class="p-2 bg-white/20 text-white rounded-lg text-sm"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+                        </div>
+                        <p class="text-2xl font-black mt-2 tracking-tight text-white font-mono" x-text="formatCurrency(totalHonorariosMedicos)"></p>
+                        <p class="text-xs text-emerald-100 mt-1">Calculado s/% configurado</p>
                     </div>
                 </div>
 
@@ -196,7 +205,7 @@
                     <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                         <div>
                             <h2 class="font-bold text-slate-900 text-base">Estado de Liquidación por Profesional</h2>
-                            <p class="text-xs text-slate-500">Valores declarados, débitos por rechazo, diferencias y total neto a pagar</p>
+                            <p class="text-xs text-slate-500">Valores declarados, débitos por rechazo, diferencias y total a pagar según % configurado</p>
                         </div>
                         <button @click="currentTab = 'profesionales'" class="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center space-x-1">
                             <span>Ver detalle individual</span>
@@ -212,24 +221,35 @@
                                     <th class="py-3 px-4 text-right">Total Declarado</th>
                                     <th class="py-3 px-4 text-right text-rose-600">Dcto. Rechazos</th>
                                     <th class="py-3 px-4 text-right text-indigo-600">Ajuste Dif. OSDE</th>
-                                    <th class="py-3 px-4 text-right font-bold text-slate-900">Neto a Liquidar</th>
+                                    <th class="py-3 px-4 text-right font-bold text-slate-700">Neto Liquidable</th>
+                                    <th class="py-3 px-4 text-center text-purple-700 font-bold">% Asignado</th>
+                                    <th class="py-3 px-4 text-right font-bold text-emerald-700">A Pagar al Médico</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200">
                                 <template x-for="prof in profesionalesResumen" :key="prof.id">
                                     <tr class="hover:bg-slate-50 transition">
                                         <td class="py-3 px-4 font-semibold text-slate-900 flex items-center space-x-2">
-                                            <i class="fa-regular fa-id-badge text-slate-400"></i>
+                                            <template x-if="getDoctorAvatar(prof.profesional)">
+                                                <img :src="getDoctorAvatar(prof.profesional)" class="w-7 h-7 rounded-full object-cover border border-slate-200">
+                                            </template>
+                                            <template x-if="!getDoctorAvatar(prof.profesional)">
+                                                <i class="fa-regular fa-id-badge text-slate-400"></i>
+                                            </template>
                                             <span x-text="prof.profesional"></span>
                                         </td>
                                         <td class="py-3 px-4 text-center">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800" x-text="prof.total_prestaciones"></span>
                                             <span x-show="prof.prestaciones_rechazadas > 0" class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-700" x-text="prof.prestaciones_rechazadas + ' rech.'"></span>
                                         </td>
-                                        <td class="py-3 px-4 text-right text-slate-600 font-mono" x-text="formatCurrency(prof.total_declarado)"></td>
-                                        <td class="py-3 px-4 text-right font-mono font-semibold" :class="prof.total_descuentos_rechazos > 0 ? 'text-rose-600' : 'text-slate-400'" x-text="'-' + formatCurrency(prof.total_descuentos_rechazos)"></td>
-                                        <td class="py-3 px-4 text-right font-mono text-slate-700" x-text="(prof.total_diferencias >= 0 ? '+' : '') + formatCurrency(prof.total_diferencias)"></td>
-                                        <td class="py-3 px-4 text-right font-mono font-bold text-emerald-700 text-base" x-text="formatCurrency(prof.total_neto_liquidable)"></td>
+                                        <td class="py-3 px-4 text-right text-slate-600 font-mono text-xs" x-text="formatCurrency(prof.total_declarado)"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-semibold text-xs" :class="prof.total_descuentos_rechazos > 0 ? 'text-rose-600' : 'text-slate-400'" x-text="'-' + formatCurrency(prof.total_descuentos_rechazos)"></td>
+                                        <td class="py-3 px-4 text-right font-mono text-xs text-slate-700" x-text="(prof.total_diferencias >= 0 ? '+' : '') + formatCurrency(prof.total_diferencias)"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-800 text-sm" x-text="formatCurrency(prof.total_neto_liquidable)"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700" x-text="getDoctorPorcentaje(prof.profesional) + '%'"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-right font-mono font-black text-emerald-700 text-base" x-text="formatCurrency(getDoctorMontoPagar(prof))"></td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -319,13 +339,17 @@
                                         </div>
                                     </template>
                                     <div>
-                                        <h2 class="text-lg sm:text-xl font-bold text-slate-900" x-text="currentProfData.profesional"></h2>
+                                        <div class="flex items-center space-x-2">
+                                            <h2 class="text-lg sm:text-xl font-bold text-slate-900" x-text="currentProfData.profesional"></h2>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700" x-text="getDoctorPorcentaje(currentProfData.profesional) + '% honorario'"></span>
+                                        </div>
                                         <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Archivo: <span class="font-mono" x-text="currentProfData.archivo"></span></p>
                                     </div>
                                 </div>
-                                <div class="w-full sm:w-auto bg-emerald-50 sm:bg-transparent p-3 sm:p-0 rounded-xl border border-emerald-200 sm:border-0 text-left sm:text-right">
-                                    <span class="text-[11px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold block">Neto Final a Cobrar</span>
-                                    <span class="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono" x-text="formatCurrency(currentProfData.total_neto_liquidable)"></span>
+                                <div class="w-full sm:w-auto bg-emerald-50 sm:bg-transparent p-3 sm:p-0 rounded-xl border border-emerald-200 sm:border-0 text-left sm:text-right flex flex-col sm:items-end">
+                                    <span class="text-[11px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold block">A Pagar al Médico (<span x-text="getDoctorPorcentaje(currentProfData.profesional) + '%'"></span>)</span>
+                                    <span class="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono" x-text="formatCurrency(getDoctorMontoPagar(currentProfData))"></span>
+                                    <span class="text-[11px] text-slate-500 mt-0.5">Neto liquidable base: <strong class="font-mono text-slate-700" x-text="formatCurrency(currentProfData.total_neto_liquidable)"></strong></span>
                                 </div>
                             </div>
 
@@ -403,15 +427,15 @@
                 </template>
             </div>
 
-            <!-- TAB NUEVO: EQUIPO MÉDICO & FOTOS DE PERFIL -->
+            <!-- TAB NUEVO: EQUIPO MÉDICO & FOTOS DE PERFIL & HONORARIOS -->
             <div x-show="currentTab === 'equipo'" class="space-y-6">
                 <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                            <i class="fa-solid fa-users text-purple-600"></i>
-                            <span>Historial Consolidado del Equipo Médico</span>
+                            <i class="fa-solid fa-user-gear text-purple-600"></i>
+                            <span>Configurador de Médicos & Porcentaje de Honorarios</span>
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">El sistema detecta automáticamente a los profesionales conciliados. Puedes asignarles o cambiarles su foto de perfil en cualquier momento.</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Configura la foto de perfil y el % de honorarios que se le liquida a cada profesional sobre el total neto facturado. El dashboard recalculará en tiempo real el monto exacto a pagar este mes.</p>
                     </div>
                 </div>
 
@@ -419,24 +443,69 @@
                     <template x-for="medico in perfilesMedicos" :key="medico.id">
                         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center text-center relative group hover:border-purple-300 hover:shadow-md transition">
                             <!-- Avatar con preview -->
-                            <div class="relative mb-4">
+                            <div class="relative mb-3">
                                 <template x-if="medico.avatar_url">
-                                    <img :src="medico.avatar_url" class="w-24 h-24 rounded-full object-cover shadow-md border-2 border-purple-500">
+                                    <img :src="medico.avatar_url" class="w-20 h-20 rounded-full object-cover shadow-md border-2 border-purple-500">
                                 </template>
                                 <template x-if="!medico.avatar_url">
-                                    <div class="w-24 h-24 rounded-full bg-purple-50 border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-purple-500 shadow-sm">
-                                        <i class="fa-solid fa-user-doctor text-3xl"></i>
-                                        <span class="text-[10px] font-semibold mt-1">Sin foto</span>
+                                    <div class="w-20 h-20 rounded-full bg-purple-50 border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-purple-500 shadow-sm">
+                                        <i class="fa-solid fa-user-doctor text-2xl"></i>
+                                        <span class="text-[9px] font-semibold mt-0.5">Sin foto</span>
                                     </div>
                                 </template>
-                                <label :for="'avatarInput-' + medico.id" class="absolute bottom-0 right-0 bg-purple-600 hover:bg-purple-700 text-white w-8 h-8 rounded-full flex items-center justify-center shadow cursor-pointer transition">
-                                    <i class="fa-solid fa-camera text-xs"></i>
+                                <label :for="'avatarInput-' + medico.id" class="absolute bottom-0 right-0 bg-purple-600 hover:bg-purple-700 text-white w-7 h-7 rounded-full flex items-center justify-center shadow cursor-pointer transition">
+                                    <i class="fa-solid fa-camera text-[10px]"></i>
                                     <input type="file" :id="'avatarInput-' + medico.id" accept="image/*" class="hidden" @change="uploadDoctorAvatar($event, medico)">
                                 </label>
                             </div>
 
                             <h3 class="font-bold text-slate-900 text-base" x-text="medico.nombre"></h3>
-                            <span class="text-[11px] font-semibold px-3 py-0.5 rounded-full bg-slate-100 text-slate-600 mt-1 mb-4">Odontología Integral</span>
+                            <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 mt-0.5 mb-4">Odontología Integral</span>
+
+                            <!-- Configurador de Porcentaje -->
+                            <div class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 mb-4 text-left">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
+                                        <i class="fa-solid fa-percent text-purple-600 text-[11px]"></i>
+                                        <span>% Honorario a Pagar:</span>
+                                    </label>
+                                    <span class="text-xs font-mono font-bold text-purple-700" x-text="(medico.porcentaje_honorarios ?? 100) + '%'"></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <input 
+                                        type="number" 
+                                        min="0" 
+                                        max="100" 
+                                        step="1"
+                                        :value="medico.porcentaje_honorarios ?? 100"
+                                        @change="updateDoctorPorcentaje(medico, $event.target.value)"
+                                        class="w-20 px-2.5 py-1 text-sm font-mono font-bold text-center border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white">
+                                    <span class="text-xs text-slate-400 font-semibold">%</span>
+                                    
+                                    <span x-show="medico._saving" class="text-xs text-slate-500 flex items-center space-x-1">
+                                        <i class="fa-solid fa-spinner animate-spin text-purple-600"></i>
+                                        <span class="text-[11px]">Guardando...</span>
+                                    </span>
+                                    <span x-show="medico._saved" class="text-xs text-emerald-600 font-bold flex items-center space-x-1">
+                                        <i class="fa-solid fa-check"></i>
+                                        <span class="text-[11px]">Guardado</span>
+                                    </span>
+                                </div>
+
+                                <!-- Botones de acceso rápido de % -->
+                                <div class="flex items-center space-x-1 mt-2.5">
+                                    <span class="text-[10px] text-slate-400 uppercase font-bold mr-1">Rápido:</span>
+                                    <template x-for="p in [50, 60, 70, 80, 100]">
+                                        <button 
+                                            type="button"
+                                            @click="updateDoctorPorcentaje(medico, p)"
+                                            :class="(medico.porcentaje_honorarios ?? 100) == p ? 'bg-purple-600 text-white font-bold' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'"
+                                            class="text-[10px] px-1.5 py-0.5 rounded transition shadow-2xs"
+                                            x-text="p + '%'">
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
 
                             <div class="w-full pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                                 <span class="flex items-center space-x-1.5">
@@ -758,8 +827,56 @@
 
                 getDoctorAvatar(profName) {
                     if (!profName) return null;
-                    const found = this.perfilesMedicos.find(m => m.nombre.toLowerCase().trim() === profName.toLowerCase().trim());
+                    const found = this.perfilesMedicos.find(m => m.nombre && m.nombre.toLowerCase().trim() === profName.toLowerCase().trim());
                     return found ? found.avatar_url : null;
+                },
+
+                getDoctorPorcentaje(profName) {
+                    if (!profName) return 100;
+                    const found = this.perfilesMedicos.find(m => m.nombre && m.nombre.toLowerCase().trim() === profName.toLowerCase().trim());
+                    if (found && found.porcentaje_honorarios !== undefined && found.porcentaje_honorarios !== null) {
+                        return Number(found.porcentaje_honorarios);
+                    }
+                    return 100;
+                },
+
+                getDoctorMontoPagar(prof) {
+                    if (!prof) return 0;
+                    const pct = this.getDoctorPorcentaje(prof.profesional);
+                    const neto = Number(prof.total_neto_liquidable) || 0;
+                    return neto * (pct / 100);
+                },
+
+                get totalHonorariosMedicos() {
+                    if (!this.profesionalesResumen || this.profesionalesResumen.length === 0) return 0;
+                    return this.profesionalesResumen.reduce((acc, p) => acc + this.getDoctorMontoPagar(p), 0);
+                },
+
+                async updateDoctorPorcentaje(medico, newPct) {
+                    const val = Math.max(0, Math.min(100, Number(newPct)));
+                    medico.porcentaje_honorarios = val;
+                    medico._saving = true;
+                    try {
+                        const res = await fetch('/api/profesionales/porcentaje', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nombre: medico.nombre,
+                                porcentaje: val
+                            })
+                        });
+                        const result = await res.json();
+                        if (result.success) {
+                            medico._saved = true;
+                            setTimeout(() => { medico._saved = false; }, 2000);
+                        } else {
+                            alert("Error guardando porcentaje: " + (result.error || ""));
+                        }
+                    } catch (err) {
+                        alert("Error de conexión: " + err.message);
+                    } finally {
+                        medico._saving = false;
+                    }
                 },
 
                 async loadPeriodos() {

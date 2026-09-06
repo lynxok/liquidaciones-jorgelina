@@ -110,6 +110,10 @@ class AvatarUpdateRequest(BaseModel):
     nombre: str
     avatar_url: str
 
+class PorcentajeUpdateRequest(BaseModel):
+    nombre: str
+    porcentaje: float
+
 @app.post("/api/profesionales/avatar")
 def update_avatar(req: AvatarUpdateRequest):
     """Guarda o actualiza la foto de avatar (URL o base64) de un medico en Supabase."""
@@ -120,6 +124,20 @@ def update_avatar(req: AvatarUpdateRequest):
         VALUES (?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT (nombre) DO UPDATE SET avatar_url = EXCLUDED.avatar_url, actualizado_en = CURRENT_TIMESTAMP
     ''', (req.nombre, req.avatar_url))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@app.post("/api/profesionales/porcentaje")
+def update_porcentaje(req: PorcentajeUpdateRequest):
+    """Guarda o actualiza el porcentaje correspondiente que se le da del total facturado neto a cada medico."""
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO profesionales_perfiles (nombre, porcentaje_honorarios, actualizado_en)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT (nombre) DO UPDATE SET porcentaje_honorarios = EXCLUDED.porcentaje_honorarios, actualizado_en = CURRENT_TIMESTAMP
+    ''', (req.nombre, req.porcentaje))
     conn.commit()
     conn.close()
     return {"success": True}

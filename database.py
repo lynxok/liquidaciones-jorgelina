@@ -190,13 +190,14 @@ def init_db():
         )
     ''')
 
-    # Table: profesionales_perfiles (Historial unico de medicos y sus avatares)
+    # Table: profesionales_perfiles (Historial unico de medicos, avatares y porcentaje de honorarios)
     c.execute('''
         CREATE TABLE IF NOT EXISTS profesionales_perfiles (
             id SERIAL PRIMARY KEY,
             nombre TEXT UNIQUE NOT NULL,
             avatar_url TEXT,
             color TEXT DEFAULT 'blue',
+            porcentaje_honorarios NUMERIC DEFAULT 100,
             actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
