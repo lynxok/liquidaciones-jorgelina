@@ -97,10 +97,14 @@ def get_periodo_detail(periodo_id: int):
 @app.post("/api/process")
 async def process_month(
     period_name: str = Form(...),
-    use_existing: bool = Form(True),
-    files: List[UploadFile] = File(None)
+    use_existing: bool = Form(False),
+    files: List[UploadFile] = File(default=[])
 ):
     try:
+        # Normalizar use_existing si viene como string
+        if isinstance(use_existing, str):
+            use_existing = use_existing.lower() in ("true", "1", "t")
+
         if use_existing:
             # Use current project directory PDFs
             osde_file = os.path.join(BASE_DIR, "LiquidacionOSDE.pdf")
@@ -111,6 +115,9 @@ async def process_month(
             if not prof_files:
                 return {"success": False, "error": "No se encontraron archivos de liquidación de profesionales en la carpeta."}
         else:
+            if not files or len(files) == 0:
+                return {"success": False, "error": "Por favor selecciona los archivos PDF a procesar (Liquidación OSDE y planillas)."}
+
             # Save uploaded files into a temporary directory (compatible with /tmp on Vercel)
             import tempfile
             upload_dir = os.path.join(tempfile.gettempdir(), "uploads", period_name.replace(" ", "_"))
@@ -120,6 +127,8 @@ async def process_month(
             prof_files = []
             
             for f in files:
+                if not f.filename:
+                    continue
                 target_path = os.path.join(upload_dir, f.filename)
                 with open(target_path, "wb") as buffer:
                     shutil.copyfileobj(f.file, buffer)
@@ -129,9 +138,9 @@ async def process_month(
                     prof_files.append(target_path)
                     
             if not osde_file:
-                return {"success": False, "error": "Es obligatorio incluir el archivo Liquidacion OSDE (.pdf)"}
+                return {"success": False, "error": "Es obligatorio incluir el archivo Liquidacion OSDE (.pdf) con 'OSDE' en su nombre."}
             if not prof_files:
-                return {"success": False, "error": "Debe incluir al menos una liquidación de profesional (.pdf)"}
+                return {"success": False, "error": "Debe incluir al menos una liquidación de profesional (.pdf)."}
                 
         # Run reconciliation
         res = matcher.reconcile_period(period_name, osde_file, prof_files)
