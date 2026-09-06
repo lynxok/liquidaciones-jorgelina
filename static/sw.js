@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ls-odontologia-v2';
+const CACHE_NAME = 'ls-odontologia-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/icon-192.png',
