@@ -31,6 +31,23 @@ def index():
     index_path = os.path.join(TEMPLATES_DIR, "index.html")
     return FileResponse(index_path)
 
+@app.get("/api/heartbeat")
+def heartbeat():
+    """Heartbeat keep-alive para mantener despierta la base de datos de Supabase y purgar archivos expirados."""
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT 1 AS alive")
+    res = c.fetchone()
+    conn.close()
+    
+    # Intentar purgar archivos expirados (+90 dias)
+    try:
+        database.purge_expired_files()
+    except Exception as e:
+        print("Error en purga automatica:", e)
+        
+    return {"status": "ok", "db": "connected", "alive": res.get("alive") if res else 1}
+
 @app.get("/api/periodos")
 def get_periodos():
     conn = database.get_db_connection()

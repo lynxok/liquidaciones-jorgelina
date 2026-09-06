@@ -39,12 +39,10 @@
     <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
-                    <i class="fa-solid fa-tooth"></i>
-                </div>
+                <img src="/static/logo_ls.jpeg" alt="LS Odontología" class="w-11 h-11 rounded-xl object-cover shadow border border-slate-200" onerror="this.style.display='none'">
                 <div>
                     <h1 class="text-lg font-bold leading-tight text-slate-900">Auditoría & Liquidaciones OSDE</h1>
-                    <p class="text-xs text-slate-500 font-medium">LS Odontología</p>
+                    <p class="text-xs text-blue-600 font-semibold tracking-wide uppercase">LS Odontología</p>
                 </div>
             </div>
 
@@ -487,22 +485,27 @@
                         <input type="text" x-model="uploadPeriodName" required placeholder="Ej: Septiembre 2026" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
 
-                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs text-blue-800">
-                        <i class="fa-solid fa-circle-info mr-1"></i>
-                        <span>Puedes procesar directamente los archivos PDF existentes en la carpeta del proyecto o seleccionar nuevos.</span>
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs text-blue-900 flex items-start space-x-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-blue-600 text-sm mt-0.5"></i>
+                        <span>Sube la <strong>Liquidación OSDE (.pdf)</strong> y las <strong>planillas de los profesionales (.pdf)</strong>. El sistema validará que las fechas de emisión coincidan y guardará los respaldos en Supabase.</span>
                     </div>
 
-                    <div class="flex items-center space-x-2">
-                        <input type="checkbox" id="useExisting" x-model="useExistingFolderFiles" class="rounded text-blue-600">
-                        <label for="useExisting" class="text-xs text-slate-700 font-medium">Usar los archivos PDF de la carpeta actual del proyecto</label>
+                    <div class="border-2 border-dashed border-blue-300 bg-blue-50/30 hover:bg-blue-50/60 transition rounded-xl p-6 text-center cursor-pointer">
+                        <input type="file" multiple id="pdfFiles" class="hidden" accept=".pdf" @change="handleFilesSelected">
+                        <label for="pdfFiles" class="cursor-pointer block">
+                            <i class="fa-solid fa-file-pdf text-4xl text-blue-500 mb-2"></i>
+                            <p class="text-sm font-semibold text-slate-800">Seleccionar o soltar archivos PDF</p>
+                            <p class="text-xs text-slate-500 mt-1">OSDE + Liquidaciones individuales</p>
+                            <div x-show="selectedFilesCount > 0" class="mt-2 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                <i class="fa-solid fa-check mr-1"></i> <span x-text="selectedFilesCount + ' archivos seleccionados'"></span>
+                            </div>
+                        </label>
                     </div>
 
-                    <div x-show="!useExistingFolderFiles" class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center">
-                        <input type="file" multiple id="pdfFiles" class="hidden" @change="handleFilesSelected">
-                        <label for="pdfFiles" class="cursor-pointer">
-                            <i class="fa-solid fa-folder-open text-3xl text-slate-400 mb-2"></i>
-                            <p class="text-xs font-semibold text-slate-700">Haz clic para seleccionar Liquidación OSDE y planillas de profesionales</p>
-                            <p class="text-xs text-slate-400 mt-1" x-text="selectedFilesCount ? selectedFilesCount + ' archivos seleccionados' : 'Archivos .pdf'"></p>
+                    <div class="pt-1 border-t border-slate-100">
+                        <label class="flex items-center space-x-2 text-xs text-slate-500 cursor-pointer">
+                            <input type="checkbox" id="useExisting" x-model="useExistingFolderFiles" class="rounded text-blue-600">
+                            <span>Modo desarrollador: usar PDFs locales de prueba si no selecciono nada</span>
                         </label>
                     </div>
                 </div>
@@ -527,7 +530,7 @@
                 showUploadModal: false,
                 uploadLoading: false,
                 uploadPeriodName: '',
-                useExistingFolderFiles: true,
+                useExistingFolderFiles: false,
                 selectedFilesCount: 0,
                 searchRechazo: '',
                 searchCruce: '',

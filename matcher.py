@@ -9,6 +9,42 @@ def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], pa
         
     osde_meta, osde_items = parser_mod.parse_osde_pdf(osde_path)
     
+    # 1. Validar que el archivo de OSDE corresponda al periodo indicado
+    osde_fec = osde_meta.get('fecha_emision', '') # e.g. '24/08/2026'
+    meses_map = {
+        '01': ['enero', 'jan'], '02': ['febrero', 'feb'], '03': ['marzo', 'mar'],
+        '04': ['abril', 'apr'], '05': ['mayo', 'may'], '06': ['junio', 'jun'],
+        '07': ['julio', 'jul'], '08': ['agosto', 'ago', 'aug'], '09': ['septiembre', 'setiembre', 'sep'],
+        '10': ['octubre', 'oct'], '11': ['noviembre', 'nov'], '12': ['diciembre', 'dic']
+    }
+    
+    if osde_fec and len(osde_fec.split('/')) == 3:
+        _, m_num, y_num = osde_fec.split('/')
+        p_lower = period_name.lower()
+        valid_keywords = meses_map.get(m_num, [])
+        match_month = any(kw in p_lower for kw in valid_keywords) or (f"-{m_num}" in p_lower or f"/{m_num}" in p_lower)
+        match_year = y_num in p_lower or y_num[-2:] in p_lower
+        
+        if not match_month:
+            mes_nombre_detectado = valid_keywords[0].capitalize() if valid_keywords else m_num
+            raise ValueError(
+                f"El archivo de OSDE corresponde a {mes_nombre_detectado} {y_num} (Emisión: {osde_fec}), "
+                f"pero indicaste el período '{period_name}'. Por favor verifica los archivos antes de procesar."
+            )
+            
+    # 2. Verificar duplicados por número de trámite en Supabase
+    tramite_osde = osde_meta.get('tramite')
+    if tramite_osde:
+        chk_conn = database.get_db_connection()
+        chk_cur = chk_conn.cursor()
+        chk_cur.execute("SELECT id, nombre FROM periodos WHERE osde_tramite = ?", (tramite_osde,))
+        existing_p = chk_cur.fetchone()
+        chk_conn.close()
+        if existing_p:
+            raise ValueError(
+                f"Este trámite de OSDE ({tramite_osde}) ya fue liquidado anteriormente en el período '{existing_p['nombre']}'."
+            )
+
     all_prof_meta = []
     all_prof_items = []
     for p_path in prof_paths:
@@ -280,6 +316,18 @@ def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], pa
     conn.commit()
     conn.close()
     
+    # Store original PDF files in Supabase for 90 days
+    try:
+        if os.path.exists(osde_path):
+            with open(osde_path, 'rb') as f:
+                database.store_periodo_file(periodo_id, 'OSDE', os.path.basename(osde_path), f.read())
+        for p_path in prof_paths:
+            if os.path.exists(p_path):
+                with open(p_path, 'rb') as f:
+                    database.store_periodo_file(periodo_id, 'PROFESIONAL', os.path.basename(p_path), f.read())
+    except Exception as e_store:
+        print("Aviso: no se pudo persistir el binario en Supabase:", e_store)
+        
     return {
         'periodo_id': periodo_id,
         'period_name': period_name,

@@ -174,7 +174,42 @@ def init_db():
             motivo TEXT
         )
     ''')
+
+    # Table: periodos_archivos (Archivos respaldatorios con caducidad de 90 dias)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS periodos_archivos (
+            id SERIAL PRIMARY KEY,
+            periodo_id INTEGER NOT NULL REFERENCES periodos(id) ON DELETE CASCADE,
+            tipo TEXT NOT NULL,
+            nombre_archivo TEXT NOT NULL,
+            profesional TEXT,
+            tamano_bytes INTEGER,
+            contenido_bytes BYTEA,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expira_en TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '90 days')
+        )
+    ''')
     
+    conn.commit()
+    conn.close()
+
+def store_periodo_file(periodo_id: int, tipo: str, nombre_archivo: str, file_bytes: bytes, profesional: str = None):
+    """Guarda el archivo original en Supabase PostgreSQL con fecha de expiracion de 90 dias."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO periodos_archivos (
+            periodo_id, tipo, nombre_archivo, profesional, tamano_bytes, contenido_bytes
+        ) VALUES (?, ?, ?, ?, ?, ?)
+    ''', (periodo_id, tipo, nombre_archivo, profesional, len(file_bytes), psycopg2.Binary(file_bytes)))
+    conn.commit()
+    conn.close()
+
+def purge_expired_files():
+    """Libera almacenamiento purgando el binario de archivos con mas de 90 dias, conservando el registro y todas las tablas."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("UPDATE periodos_archivos SET contenido_bytes = NULL WHERE expira_en < CURRENT_TIMESTAMP AND contenido_bytes IS NOT NULL")
     conn.commit()
     conn.close()
 
