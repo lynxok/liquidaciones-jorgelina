@@ -1,7 +1,7 @@
-﻿{
-  "name": "LS Odontología - Auditoría & Liquidaciones",
-  "short_name": "LS Odontología",
-  "description": "Sistema de Conciliación y Auditoría de Liquidaciones Odontológicas OSDE",
+{
+  "name": "LS Odontolog?a - Auditor?a & Liquidaciones",
+  "short_name": "LS Odontolog?a",
+  "description": "Sistema de Conciliaci?n y Auditor?a de Liquidaciones Odontol?gicas OSDE",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/static/icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

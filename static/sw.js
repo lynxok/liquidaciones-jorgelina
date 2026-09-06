@@ -1,10 +1,9 @@
-﻿const CACHE_NAME = 'ls-odontologia-v1';
+const CACHE_NAME = 'ls-odontologia-v2';
 const ASSETS_TO_CACHE = [
   '/',
-  '/static/logo_ls.jpeg',
-  '/static/icon-192.png',
-  '/static/icon-512.png',
-  '/static/manifest.json'
+  '/icon-192.png',
+  '/icon-512.png',
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -32,7 +31,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Para llamadas a API, ir directo a la red (network-first)
   if (event.request.url.includes('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
@@ -40,7 +38,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para navegación y assets estáticos, intentar red primero y fallback a cache
   event.respondWith(
     fetch(event.request)
       .then((response) => {
