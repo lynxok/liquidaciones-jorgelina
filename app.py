@@ -39,6 +39,20 @@ def get_logo():
         return FileResponse(logo_path, media_type="image/jpeg")
     return JSONResponse(status_code=404, content={"error": "Logo no encontrado"})
 
+@app.get("/manifest.json")
+def get_manifest():
+    manifest_path = os.path.join(STATIC_DIR, "manifest.json")
+    if os.path.exists(manifest_path):
+        return FileResponse(manifest_path, media_type="application/manifest+json")
+    return JSONResponse(status_code=404, content={"error": "Manifest no encontrado"})
+
+@app.get("/sw.js")
+def get_sw():
+    sw_path = os.path.join(STATIC_DIR, "sw.js")
+    if os.path.exists(sw_path):
+        return FileResponse(sw_path, media_type="application/javascript")
+    return JSONResponse(status_code=404, content={"error": "Service Worker no encontrado"})
+
 @app.get("/api/heartbeat")
 def heartbeat():
     """Heartbeat keep-alive para mantener despierta la base de datos de Supabase y purgar archivos expirados."""
