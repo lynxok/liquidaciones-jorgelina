@@ -38,6 +38,53 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         [x-cloak] { display: none !important; }
+
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #0f172a !important;
+                font-size: 12px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print, header, nav, .sticky, #uploadModal, button, .pwa-banner {
+                display: none !important;
+            }
+            #screenContent {
+                display: none !important;
+            }
+            #printSection {
+                display: block !important;
+            }
+            .print-page {
+                page-break-after: always;
+                break-after: page;
+                padding: 10px 0;
+            }
+            .print-page:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            th, td {
+                padding: 4px 6px !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+            }
+            thead {
+                display: table-header-group;
+            }
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+        @media screen {
+            #printSection {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col" x-data="app()" x-init="init()" x-cloak>
@@ -140,7 +187,7 @@
     </div>
 
     <!-- Main Content Body -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <main id="screenContent" class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
 
         <!-- Loading Spinner -->
         <div x-show="loading" class="flex flex-col items-center justify-center py-20">
@@ -207,10 +254,16 @@
                             <h2 class="font-bold text-slate-900 text-base">Estado de Liquidación por Profesional</h2>
                             <p class="text-xs text-slate-500">Valores declarados, débitos por rechazo, diferencias y total a pagar según % configurado</p>
                         </div>
-                        <button @click="currentTab = 'profesionales'" class="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center space-x-1">
-                            <span>Ver detalle individual</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button @click="imprimirTodos()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition">
+                                <i class="fa-solid fa-print"></i>
+                                <span>Imprimir Todos</span>
+                            </button>
+                            <button @click="currentTab = 'profesionales'" class="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center space-x-1 px-2 py-1.5">
+                                <span>Ver detalle individual</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm border-collapse">
@@ -314,14 +367,22 @@
 
             <!-- TAB 3: LIQUIDACIÓN POR PROFESIONAL -->
             <div x-show="currentTab === 'profesionales'" class="space-y-6">
-                <!-- Professional Selector Pill -->
-                <div class="flex items-center space-x-2 overflow-x-auto pb-2">
-                    <template x-for="prof in profesionalesResumen" :key="prof.id">
-                        <button @click="selectedProfName = prof.profesional" :class="selectedProfName === prof.profesional ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap flex items-center space-x-2">
-                            <span x-text="prof.profesional"></span>
-                            <span class="text-xs px-1.5 py-0.5 rounded-full" :class="selectedProfName === prof.profesional ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-600'" x-text="prof.total_prestaciones"></span>
+                <!-- Professional Selector Toolbar con Botón Imprimir Todos -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+                    <div class="flex items-center space-x-2 overflow-x-auto pb-1 max-w-full">
+                        <template x-for="prof in profesionalesResumen" :key="prof.id">
+                            <button @click="selectedProfName = prof.profesional" :class="selectedProfName === prof.profesional ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap flex items-center space-x-2">
+                                <span x-text="prof.profesional"></span>
+                                <span class="text-xs px-1.5 py-0.5 rounded-full" :class="selectedProfName === prof.profesional ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-600'" x-text="prof.total_prestaciones"></span>
+                            </button>
+                        </template>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
+                        <button @click="imprimirTodos()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-2 shadow transition">
+                            <i class="fa-solid fa-print"></i>
+                            <span>Imprimir Todos (Mes)</span>
                         </button>
-                    </template>
+                    </div>
                 </div>
 
                 <!-- Professional Detailed Card -->
@@ -346,10 +407,16 @@
                                         <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Archivo: <span class="font-mono" x-text="currentProfData.archivo"></span></p>
                                     </div>
                                 </div>
-                                <div class="w-full sm:w-auto bg-emerald-50 sm:bg-transparent p-3 sm:p-0 rounded-xl border border-emerald-200 sm:border-0 text-left sm:text-right flex flex-col sm:items-end">
-                                    <span class="text-[11px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold block">A Pagar al Médico (<span x-text="getDoctorPorcentaje(currentProfData.profesional) + '%'"></span>)</span>
-                                    <span class="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono" x-text="formatCurrency(getDoctorMontoPagar(currentProfData))"></span>
-                                    <span class="text-[11px] text-slate-500 mt-0.5">Neto liquidable base: <strong class="font-mono text-slate-700" x-text="formatCurrency(currentProfData.total_neto_liquidable)"></strong></span>
+                                <div class="w-full sm:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                    <div class="bg-emerald-50 sm:bg-transparent p-3 sm:p-0 rounded-xl border border-emerald-200 sm:border-0 text-left sm:text-right flex flex-col sm:items-end">
+                                        <span class="text-[11px] sm:text-xs text-slate-500 uppercase tracking-wider font-semibold block">A Pagar al Médico (<span x-text="getDoctorPorcentaje(currentProfData.profesional) + '%'"></span>)</span>
+                                        <span class="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono" x-text="formatCurrency(getDoctorMontoPagar(currentProfData))"></span>
+                                        <span class="text-[11px] text-slate-500 mt-0.5">Neto liquidable base: <strong class="font-mono text-slate-700" x-text="formatCurrency(currentProfData.total_neto_liquidable)"></strong></span>
+                                    </div>
+                                    <button @click="imprimirProfesional(currentProfData.profesional)" class="self-stretch sm:self-auto bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 shadow-sm transition">
+                                        <i class="fa-solid fa-print text-sm"></i>
+                                        <span>Imprimir Liquidación</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -636,6 +703,302 @@
         </div>
     </main>
 
+    <!-- PLANTILLA DE IMPRESIÓN CON LOGO Y MEMBRETE ODONTOLÓGICO -->
+    <div id="printSection" class="p-6 max-w-4xl mx-auto text-slate-900 bg-white">
+        <!-- MODO: TODOS LOS PROFESIONALES (RESUMEN GENERAL + FICHAS INDIVIDUALES) -->
+        <template x-if="printMode === 'all'">
+            <div>
+                <!-- PORTADA / RESUMEN CONSOLIDADO -->
+                <div class="print-page border-b-2 border-slate-300 pb-6 mb-6">
+                    <div class="flex items-center justify-between border-b-2 border-blue-600 pb-4 mb-4">
+                        <div class="flex items-center space-x-3">
+                            <img src="/static/logo_ls.jpeg" alt="Logo LS Odontología" class="w-16 h-16 rounded-xl object-cover border border-slate-200">
+                            <div>
+                                <h1 class="text-xl font-black text-slate-900 uppercase tracking-tight">LS Odontología</h1>
+                                <p class="text-xs text-blue-700 font-bold uppercase tracking-wider">Centro Odontológico &middot; Auditoría de Liquidaciones</p>
+                                <p class="text-[11px] text-slate-500">Av. Principal 1234 &middot; Tel: (011) 4567-8900 &middot; info@lsodontologia.com</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-block bg-blue-100 text-blue-800 text-[11px] font-extrabold uppercase px-2.5 py-1 rounded">Consolidado Mensual</span>
+                            <p class="text-xs text-slate-500 mt-1">Período: <strong class="text-slate-800" x-text="periodoActual.nombre || 'N/A'"></strong></p>
+                            <p class="text-[10px] text-slate-400">Emisión: <span x-text="printDateFormatted"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Métricas Principales del Mes -->
+                    <div class="grid grid-cols-4 gap-3 mb-5">
+                        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Liq. OSDE Total</span>
+                            <span class="text-sm font-black font-mono text-blue-900" x-text="formatCurrency(periodoActual.total_osde_liquidado)"></span>
+                        </div>
+                        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Declarado Profs.</span>
+                            <span class="text-sm font-black font-mono text-slate-800" x-text="formatCurrency(periodoActual.total_prof_declarado)"></span>
+                        </div>
+                        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded">
+                            <span class="text-[10px] font-bold text-rose-600 uppercase block">Total Rechazos</span>
+                            <span class="text-sm font-black font-mono text-rose-700" x-text="formatCurrency(periodoActual.total_rechazados_monto)"></span>
+                        </div>
+                        <div class="p-2.5 bg-emerald-50 border border-emerald-300 rounded">
+                            <span class="text-[10px] font-bold text-emerald-800 uppercase block">Total a Pagar Médicos</span>
+                            <span class="text-sm font-black font-mono text-emerald-700" x-text="formatCurrency(totalHonorariosMedicos)"></span>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Desglose General por Profesional</h2>
+                    <table class="w-full text-left text-xs border border-slate-200 mb-4">
+                        <thead class="bg-slate-100 font-bold text-[10px] uppercase text-slate-700 border-b border-slate-300">
+                            <tr>
+                                <th class="py-1.5 px-2">Profesional</th>
+                                <th class="py-1.5 px-2 text-center">Prest.</th>
+                                <th class="py-1.5 px-2 text-right">Presentado</th>
+                                <th class="py-1.5 px-2 text-right">Dcto. Rech.</th>
+                                <th class="py-1.5 px-2 text-right">Ajuste OSDE</th>
+                                <th class="py-1.5 px-2 text-right">Neto Base</th>
+                                <th class="py-1.5 px-2 text-center">% Honorario</th>
+                                <th class="py-1.5 px-2 text-right font-black text-emerald-800">A Pagar</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-[11px]">
+                            <template x-for="prof in profesionalesResumen" :key="'sum-'+prof.id">
+                                <tr>
+                                    <td class="py-1 px-2 font-bold text-slate-900" x-text="prof.profesional"></td>
+                                    <td class="py-1 px-2 text-center" x-text="prof.total_prestaciones"></td>
+                                    <td class="py-1 px-2 text-right font-mono" x-text="formatCurrency(prof.total_declarado)"></td>
+                                    <td class="py-1 px-2 text-right font-mono text-rose-700" x-text="'-' + formatCurrency(prof.total_descuentos_rechazos)"></td>
+                                    <td class="py-1 px-2 text-right font-mono" x-text="(prof.total_diferencias >= 0 ? '+' : '') + formatCurrency(prof.total_diferencias)"></td>
+                                    <td class="py-1 px-2 text-right font-mono font-semibold" x-text="formatCurrency(prof.total_neto_liquidable)"></td>
+                                    <td class="py-1 px-2 text-center font-bold text-purple-700" x-text="getDoctorPorcentaje(prof.profesional) + '%'"></td>
+                                    <td class="py-1 px-2 text-right font-mono font-bold text-emerald-700" x-text="formatCurrency(getDoctorMontoPagar(prof))"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                        <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-300 text-[11px]">
+                            <tr>
+                                <td class="py-1.5 px-2 uppercase" colspan="7">Total General a Pagar a Profesionales:</td>
+                                <td class="py-1.5 px-2 text-right font-mono text-emerald-800 text-xs" x-text="formatCurrency(totalHonorariosMedicos)"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- FICHAS INDIVIDUALES POR PROFESIONAL (CADA UNA EN SU PÁGINA) -->
+                <template x-for="prof in profesionalesResumen" :key="'page-'+prof.id">
+                    <div class="print-page py-4">
+                        <!-- Membrete con Logo -->
+                        <div class="flex items-center justify-between border-b-2 border-blue-600 pb-3 mb-3">
+                            <div class="flex items-center space-x-3">
+                                <img src="/static/logo_ls.jpeg" alt="Logo LS Odontología" class="w-14 h-14 rounded-xl object-cover border border-slate-200">
+                                <div>
+                                    <h1 class="text-lg font-black text-slate-900 uppercase">LS Odontología</h1>
+                                    <p class="text-[11px] text-blue-700 font-bold uppercase">Liquidación de Honorarios Profesionales</p>
+                                    <p class="text-[10px] text-slate-500">Período: <strong x-text="periodoActual.nombre || 'N/A'"></strong> &middot; OSDE Trámite: <span x-text="periodoActual.osde_tramite || 'S/D'"></span></p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="bg-purple-50 border border-purple-200 px-3 py-1 rounded inline-block text-right">
+                                    <span class="text-[10px] text-slate-500 uppercase font-bold block">Porcentaje Asignado</span>
+                                    <span class="text-sm font-black text-purple-700" x-text="getDoctorPorcentaje(prof.profesional) + '%'"></span>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-1">Impresión: <span x-text="printDateFormatted"></span></p>
+                            </div>
+                        </div>
+
+                        <!-- Tarjeta Resumen del Profesional -->
+                        <div class="bg-slate-50 border border-slate-200 rounded p-3 mb-3 flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] text-slate-500 uppercase font-bold block">Profesional Odontólogo/a</span>
+                                <h2 class="text-base font-extrabold text-slate-900" x-text="prof.profesional"></h2>
+                                <p class="text-[10px] text-slate-500">Archivo: <span class="font-mono" x-text="prof.archivo"></span></p>
+                            </div>
+                            <div class="text-right bg-white border border-emerald-300 p-2.5 rounded shadow-xs">
+                                <span class="text-[10px] text-slate-500 uppercase font-bold block">Total Neto a Pagar</span>
+                                <span class="text-xl font-black font-mono text-emerald-700" x-text="formatCurrency(getDoctorMontoPagar(prof))"></span>
+                                <span class="text-[10px] text-slate-400 block">Base neta liquidable: <strong class="font-mono text-slate-700" x-text="formatCurrency(prof.total_neto_liquidable)"></strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Indicadores Financieros Compactos -->
+                        <div class="grid grid-cols-4 gap-2 mb-3 text-center">
+                            <div class="p-1.5 bg-slate-100 rounded border border-slate-200">
+                                <span class="text-[9px] text-slate-500 uppercase font-bold block">Presentado</span>
+                                <span class="text-xs font-mono font-bold text-slate-800" x-text="formatCurrency(prof.total_declarado)"></span>
+                            </div>
+                            <div class="p-1.5 bg-rose-50 rounded border border-rose-200">
+                                <span class="text-[9px] text-rose-600 uppercase font-bold block">Dcto. Rechazos</span>
+                                <span class="text-xs font-mono font-bold text-rose-700" x-text="'-' + formatCurrency(prof.total_descuentos_rechazos)"></span>
+                            </div>
+                            <div class="p-1.5 bg-indigo-50 rounded border border-indigo-200">
+                                <span class="text-[9px] text-indigo-600 uppercase font-bold block">Ajuste OSDE</span>
+                                <span class="text-xs font-mono font-bold text-indigo-700" x-text="(prof.total_diferencias >= 0 ? '+' : '') + formatCurrency(prof.total_diferencias)"></span>
+                            </div>
+                            <div class="p-1.5 bg-emerald-50 rounded border border-emerald-200">
+                                <span class="text-[9px] text-emerald-700 uppercase font-bold block">Liq. OSDE</span>
+                                <span class="text-xs font-mono font-bold text-emerald-800" x-text="formatCurrency(prof.total_liquidado_osde)"></span>
+                            </div>
+                        </div>
+
+                        <!-- Detalle de Prestaciones del Profesional -->
+                        <h3 class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Detalle de Prestaciones (<span x-text="getItemsForDoctor(prof.profesional).length"></span> registros)
+                        </h3>
+                        <table class="w-full text-left text-[10px] border border-slate-200 mb-4">
+                            <thead class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-300">
+                                <tr>
+                                    <th class="py-1 px-1.5">Fecha</th>
+                                    <th class="py-1 px-1.5">Paciente</th>
+                                    <th class="py-1 px-1.5">Afiliado</th>
+                                    <th class="py-1 px-1.5">Cód.</th>
+                                    <th class="py-1 px-1.5">Cód. OSDE</th>
+                                    <th class="py-1 px-1.5 text-right">Presentado</th>
+                                    <th class="py-1 px-1.5 text-right">Liq. OSDE</th>
+                                    <th class="py-1 px-1.5 text-right">Diferencia</th>
+                                    <th class="py-1 px-1.5 text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                <template x-for="item in getItemsForDoctor(prof.profesional)" :key="'it-'+item.id">
+                                    <tr :class="item.estado_conciliacion === 'RECHAZADO' ? 'bg-rose-50/70' : (item.estado_conciliacion === 'DIFERENCIA' ? 'bg-amber-50/50' : '')">
+                                        <td class="py-0.5 px-1.5 font-mono text-[9px]" x-text="item.fecha"></td>
+                                        <td class="py-0.5 px-1.5 font-semibold text-slate-900" x-text="item.paciente"></td>
+                                        <td class="py-0.5 px-1.5 font-mono text-[9px] text-slate-600" x-text="item.afiliado || 'S/D'"></td>
+                                        <td class="py-0.5 px-1.5 font-mono text-[9px]" x-text="item.cod_prest"></td>
+                                        <td class="py-0.5 px-1.5 font-mono text-[9px] text-slate-500" x-text="item.cod_osde_equivalente"></td>
+                                        <td class="py-0.5 px-1.5 text-right font-mono" x-text="formatCurrency(item.imp_final)"></td>
+                                        <td class="py-0.5 px-1.5 text-right font-mono" :class="item.imp_liquidado_osde > 0 ? 'text-slate-800' : 'text-rose-600 font-bold'" x-text="formatCurrency(item.imp_liquidado_osde)"></td>
+                                        <td class="py-0.5 px-1.5 text-right font-mono font-semibold" :class="item.diferencia_osde < 0 ? 'text-rose-600' : (item.diferencia_osde > 0 ? 'text-emerald-700' : 'text-slate-400')" x-text="formatCurrency(item.diferencia_osde)"></td>
+                                        <td class="py-0.5 px-1.5 text-center text-[8px] font-bold" x-text="item.estado_conciliacion"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+
+                        <!-- Firmas -->
+                        <div class="grid grid-cols-2 gap-8 pt-8 mt-6 border-t border-dashed border-slate-300 text-center">
+                            <div>
+                                <div class="w-44 border-b border-slate-400 mx-auto mb-1"></div>
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Firma Administración LS Odontología</span>
+                            </div>
+                            <div>
+                                <div class="w-44 border-b border-slate-400 mx-auto mb-1"></div>
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Conforme Profesional: <span class="font-bold" x-text="prof.profesional"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- MODO: PROFESIONAL INDIVIDUAL -->
+        <template x-if="printMode === 'single' && currentProfData">
+            <div class="print-page py-4">
+                <!-- Membrete con Logo -->
+                <div class="flex items-center justify-between border-b-2 border-blue-600 pb-4 mb-4">
+                    <div class="flex items-center space-x-3">
+                        <img src="/static/logo_ls.jpeg" alt="Logo LS Odontología" class="w-16 h-16 rounded-xl object-cover border border-slate-200">
+                        <div>
+                            <h1 class="text-xl font-black text-slate-900 uppercase tracking-tight">LS Odontología</h1>
+                            <p class="text-xs text-blue-700 font-bold uppercase tracking-wider">Centro Odontológico &middot; Liquidación de Honorarios</p>
+                            <p class="text-[11px] text-slate-500">Av. Principal 1234 &middot; Tel: (011) 4567-8900 &middot; info@lsodontologia.com</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block bg-purple-100 text-purple-800 text-[11px] font-extrabold uppercase px-2.5 py-1 rounded" x-text="getDoctorPorcentaje(currentProfData.profesional) + '% de Honorarios'"></span>
+                        <p class="text-xs text-slate-600 mt-1">Período: <strong class="text-slate-900" x-text="periodoActual.nombre || 'N/A'"></strong></p>
+                        <p class="text-[10px] text-slate-400">Emisión: <span x-text="printDateFormatted"></span></p>
+                    </div>
+                </div>
+
+                <!-- Tarjeta Resumen del Profesional -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] text-slate-500 uppercase font-bold block">Profesional Odontólogo/a</span>
+                        <h2 class="text-lg font-black text-slate-900" x-text="currentProfData.profesional"></h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Planilla origen: <span class="font-mono text-slate-700" x-text="currentProfData.archivo"></span> &middot; OSDE Trámite: <span class="font-semibold" x-text="periodoActual.osde_tramite || 'S/D'"></span></p>
+                    </div>
+                    <div class="text-right bg-white border border-emerald-300 p-3 rounded-lg shadow-xs">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold block">Total Neto a Cobrar</span>
+                        <span class="text-2xl font-black font-mono text-emerald-700" x-text="formatCurrency(getDoctorMontoPagar(currentProfData))"></span>
+                        <span class="text-[10px] text-slate-500 block">Base liquidable total: <strong class="font-mono text-slate-800" x-text="formatCurrency(currentProfData.total_neto_liquidable)"></strong></span>
+                    </div>
+                </div>
+
+                <!-- Indicadores Financieros -->
+                <div class="grid grid-cols-4 gap-3 mb-4 text-center">
+                    <div class="p-2 bg-slate-100 rounded border border-slate-200">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold block">Monto Presentado</span>
+                        <span class="text-sm font-mono font-bold text-slate-800" x-text="formatCurrency(currentProfData.total_declarado)"></span>
+                    </div>
+                    <div class="p-2 bg-rose-50 rounded border border-rose-200">
+                        <span class="text-[10px] text-rose-600 uppercase font-bold block">Dcto. Rechazos</span>
+                        <span class="text-sm font-mono font-bold text-rose-700" x-text="'-' + formatCurrency(currentProfData.total_descuentos_rechazos)"></span>
+                    </div>
+                    <div class="p-2 bg-indigo-50 rounded border border-indigo-200">
+                        <span class="text-[10px] text-indigo-600 uppercase font-bold block">Ajuste OSDE</span>
+                        <span class="text-sm font-mono font-bold text-indigo-700" x-text="(currentProfData.total_diferencias >= 0 ? '+' : '') + formatCurrency(currentProfData.total_diferencias)"></span>
+                    </div>
+                    <div class="p-2 bg-emerald-50 rounded border border-emerald-200">
+                        <span class="text-[10px] text-emerald-700 uppercase font-bold block">Liq. OSDE Base</span>
+                        <span class="text-sm font-mono font-bold text-emerald-800" x-text="formatCurrency(currentProfData.total_liquidado_osde)"></span>
+                    </div>
+                </div>
+
+                <!-- Detalle de Prestaciones -->
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                            Detalle de Prestaciones Registradas (<span x-text="currentProfItems.length"></span>)
+                        </h3>
+                        <span class="text-[10px] text-slate-500">Período: <strong x-text="periodoActual.nombre || 'N/A'"></strong></span>
+                    </div>
+                    <table class="w-full text-left text-[10px] border border-slate-200">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-300">
+                            <tr>
+                                <th class="py-1 px-2">Fecha</th>
+                                <th class="py-1 px-2">Paciente</th>
+                                <th class="py-1 px-2">Afiliado</th>
+                                <th class="py-1 px-2">Cód. Prof.</th>
+                                <th class="py-1 px-2">Cód. OSDE</th>
+                                <th class="py-1 px-2 text-right">Imp. Presentado</th>
+                                <th class="py-1 px-2 text-right">Imp. OSDE</th>
+                                <th class="py-1 px-2 text-right">Diferencia</th>
+                                <th class="py-1 px-2 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <template x-for="item in currentProfItems" :key="'it-single-'+item.id">
+                                <tr :class="item.estado_conciliacion === 'RECHAZADO' ? 'bg-rose-50/70' : (item.estado_conciliacion === 'DIFERENCIA' ? 'bg-amber-50/50' : '')">
+                                    <td class="py-1 px-2 font-mono text-[9px]" x-text="item.fecha"></td>
+                                    <td class="py-1 px-2 font-semibold text-slate-900" x-text="item.paciente"></td>
+                                    <td class="py-1 px-2 font-mono text-[9px] text-slate-600" x-text="item.afiliado || 'S/D'"></td>
+                                    <td class="py-1 px-2 font-mono text-[9px]" x-text="item.cod_prest"></td>
+                                    <td class="py-1 px-2 font-mono text-[9px] text-slate-500" x-text="item.cod_osde_equivalente"></td>
+                                    <td class="py-1 px-2 text-right font-mono" x-text="formatCurrency(item.imp_final)"></td>
+                                    <td class="py-1 px-2 text-right font-mono" :class="item.imp_liquidado_osde > 0 ? 'text-slate-800' : 'text-rose-600 font-bold'" x-text="formatCurrency(item.imp_liquidado_osde)"></td>
+                                    <td class="py-1 px-2 text-right font-mono font-semibold" :class="item.diferencia_osde < 0 ? 'text-rose-600' : (item.diferencia_osde > 0 ? 'text-emerald-700' : 'text-slate-400')" x-text="formatCurrency(item.diferencia_osde)"></td>
+                                    <td class="py-1 px-2 text-center text-[9px] font-bold" x-text="item.estado_conciliacion"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Firmas -->
+                <div class="grid grid-cols-2 gap-8 pt-10 mt-8 border-t border-dashed border-slate-300 text-center">
+                    <div>
+                        <div class="w-48 border-b border-slate-400 mx-auto mb-1.5"></div>
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Firma Administración LS Odontología</span>
+                    </div>
+                    <div>
+                        <div class="w-48 border-b border-slate-400 mx-auto mb-1.5"></div>
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Conforme Profesional: <span class="font-bold text-slate-800" x-text="currentProfData.profesional"></span></span>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
     <!-- Upload Modal Responsivo -->
     <div x-show="showUploadModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div @click.away="showUploadModal = false" class="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col p-5 sm:p-6 shadow-2xl border border-slate-200 overflow-y-auto">
@@ -744,6 +1107,15 @@
                 searchRechazo: '',
                 searchCruce: '',
                 selectedProfName: '',
+                printMode: 'single', // 'single' o 'all'
+                
+                get printDateFormatted() {
+                    return new Date().toLocaleDateString('es-AR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                },
                 
                 periodos: [],
                 selectedPeriodId: null,
@@ -945,6 +1317,27 @@
 
                 get currentProfItems() {
                     return this.profItems.filter(p => p.profesional === this.selectedProfName);
+                },
+
+                getItemsForDoctor(profName) {
+                    return this.profItems.filter(p => p.profesional === profName);
+                },
+
+                imprimirProfesional(profName) {
+                    if (profName) {
+                        this.selectedProfName = profName;
+                    }
+                    this.printMode = 'single';
+                    this.$nextTick(() => {
+                        window.print();
+                    });
+                },
+
+                imprimirTodos() {
+                    this.printMode = 'all';
+                    this.$nextTick(() => {
+                        window.print();
+                    });
                 },
 
                 parsedFilesList: [],
