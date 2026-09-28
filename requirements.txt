@@ -1,8 +1,7 @@
 fastapi
 uvicorn
 jinja2
-pypdf
-pdfplumber
+PyMuPDF
 psycopg2-binary
 python-multipart
 mangum
