@@ -142,6 +142,85 @@ def update_porcentaje(req: PorcentajeUpdateRequest):
     conn.close()
     return {"success": True}
 
+class ProfesionalCreateRequest(BaseModel):
+    nombre: str
+
+@app.post("/api/profesionales/nuevo")
+def create_profesional(req: ProfesionalCreateRequest):
+    """Permite dar de alta un nuevo profesional al equipo médico."""
+    clean_nombre = req.nombre.strip()
+    if not clean_nombre:
+        return JSONResponse(status_code=400, content={"success": False, "error": "El nombre no puede estar vacío."})
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO profesionales_perfiles (nombre, porcentaje_honorarios, actualizado_en)
+        VALUES (?, 100, CURRENT_TIMESTAMP)
+        ON CONFLICT (nombre) DO NOTHING
+    ''', (clean_nombre,))
+    conn.commit()
+    conn.close()
+    return {"success": True, "nombre": clean_nombre}
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class PasswordChangeRequest(BaseModel):
+    email: str
+    current_password: str
+    new_password: str
+
+@app.post("/api/auth/login")
+def login(req: LoginRequest):
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, email, password_hash, salt, nombre FROM usuarios WHERE LOWER(email) = LOWER(?)", (req.email.strip(),))
+    user = c.fetchone()
+    conn.close()
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Usuario o contraseña incorrectos."})
+    
+    if not database.verify_password(req.password, user["salt"], user["password_hash"]):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Usuario o contraseña incorrectos."})
+    
+    # Retornar datos de usuario autenticado
+    return {
+        "success": True,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "nombre": user["nombre"]
+        }
+    }
+
+@app.post("/api/auth/change-password")
+def change_password(req: PasswordChangeRequest):
+    if len(req.new_password) < 6:
+        return JSONResponse(status_code=400, content={"success": False, "error": "La nueva contraseña debe tener al menos 6 caracteres."})
+    
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, email, password_hash, salt FROM usuarios WHERE LOWER(email) = LOWER(?)", (req.email.strip(),))
+    user = c.fetchone()
+    if not user:
+        conn.close()
+        return JSONResponse(status_code=404, content={"success": False, "error": "Usuario no encontrado."})
+    
+    if not database.verify_password(req.current_password, user["salt"], user["password_hash"]):
+        conn.close()
+        return JSONResponse(status_code=400, content={"success": False, "error": "La contraseña actual no es correcta."})
+    
+    new_salt, new_hash = database.hash_password(req.new_password)
+    c.execute('''
+        UPDATE usuarios
+        SET password_hash = ?, salt = ?, actualizado_en = CURRENT_TIMESTAMP
+        WHERE id = ?
+    ''', (new_hash, new_salt, user["id"]))
+    conn.commit()
+    conn.close()
+    return {"success": True, "message": "Contraseña actualizada con éxito."}
+
 @app.get("/api/periodos")
 def get_periodos():
     conn = database.get_db_connection()
@@ -190,8 +269,10 @@ def get_periodo_detail(periodo_id: int):
 
 @app.post("/api/process")
 async def process_month(
+    request: Request,
     period_name: str = Form(...),
     use_existing: bool = Form(False),
+    osde_file: UploadFile = File(default=None),
     files: List[UploadFile] = File(default=[])
 ):
     try:
@@ -201,47 +282,61 @@ async def process_month(
 
         if use_existing:
             # Use current project directory PDFs
-            osde_file = os.path.join(BASE_DIR, "LiquidacionOSDE.pdf")
-            if not os.path.exists(osde_file):
+            target_osde = os.path.join(BASE_DIR, "LiquidacionOSDE.pdf")
+            if not os.path.exists(target_osde):
                 return {"success": False, "error": "No se encontró LiquidacionOSDE.pdf en la carpeta del proyecto."}
                 
-            prof_files = [f for f in sorted(glob.glob(os.path.join(BASE_DIR, "liquidacion*.pdf"))) if os.path.basename(f) != "LiquidacionOSDE.pdf"]
-            if not prof_files:
+            prof_files_paths = [f for f in sorted(glob.glob(os.path.join(BASE_DIR, "liquidacion*.pdf"))) if os.path.basename(f) != "LiquidacionOSDE.pdf"]
+            if not prof_files_paths:
                 return {"success": False, "error": "No se encontraron archivos de liquidación de profesionales en la carpeta."}
         else:
-            if not files or len(files) == 0:
-                return {"success": False, "error": "Por favor selecciona los archivos PDF a procesar (Liquidación OSDE y planillas)."}
-
-            # Save uploaded files into a temporary directory (compatible with /tmp on Vercel)
             import tempfile
             upload_dir = os.path.join(tempfile.gettempdir(), "uploads", period_name.replace(" ", "_"))
             os.makedirs(upload_dir, exist_ok=True)
             
-            osde_file = None
-            prof_files = []
-            
+            target_osde = None
+            prof_files_paths = []
+
+            # 1. Si vino archivo específico de OSDE
+            if osde_file and osde_file.filename:
+                osde_path = os.path.join(upload_dir, f"OSDE_{osde_file.filename}")
+                with open(osde_path, "wb") as buffer:
+                    shutil.copyfileobj(osde_file.file, buffer)
+                target_osde = osde_path
+
+            # 2. Revisar archivos en `files` (tanto subida múltiple clásica como subida por profesional)
+            # También soportar campos dinámicos prof_file_<nombre>
+            form_data = await request.form()
+            for key, val in form_data.items():
+                if key.startswith("prof_file_") and hasattr(val, "filename") and val.filename:
+                    p_path = os.path.join(upload_dir, val.filename)
+                    with open(p_path, "wb") as buffer:
+                        shutil.copyfileobj(val.file, buffer)
+                    prof_files_paths.append(p_path)
+
             for f in files:
                 if not f.filename:
                     continue
                 target_path = os.path.join(upload_dir, f.filename)
                 with open(target_path, "wb") as buffer:
                     shutil.copyfileobj(f.file, buffer)
-                if "OSDE" in f.filename.upper():
-                    osde_file = target_path
+                if not target_osde and "OSDE" in f.filename.upper():
+                    target_osde = target_path
                 else:
-                    prof_files.append(target_path)
+                    prof_files_paths.append(target_path)
                     
-            if not osde_file:
-                return {"success": False, "error": "Es obligatorio incluir el archivo Liquidacion OSDE (.pdf) con 'OSDE' en su nombre."}
-            if not prof_files:
+            if not target_osde:
+                return {"success": False, "error": "Es obligatorio incluir el archivo de Liquidación OSDE (.pdf)."}
+            if not prof_files_paths:
                 return {"success": False, "error": "Debe incluir al menos una liquidación de profesional (.pdf)."}
                 
         # Run reconciliation
-        res = matcher.reconcile_period(period_name, osde_file, prof_files)
+        res = matcher.reconcile_period(period_name, target_osde, prof_files_paths)
         return {"success": True, "periodo_id": res["periodo_id"]}
         
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 if __name__ == "__main__":
     import uvicorn

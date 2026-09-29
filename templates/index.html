@@ -106,6 +106,66 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col" x-data="app()" x-init="init()" x-cloak>
 
+    <!-- PANTALLA DE LOGIN (Si no hay usuario logueado) -->
+    <div x-show="!currentUser" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4" style="display: none;">
+        <div class="bg-white rounded-3xl max-w-md w-full p-7 sm:p-8 shadow-2xl border border-slate-100 flex flex-col items-center">
+            <!-- Logo LS Odontología -->
+            <div class="mb-4 relative">
+                <img :src="clinicLogo" alt="LS Odontología" class="w-16 h-16 rounded-2xl object-cover shadow-md border-2 border-white ring-4 ring-blue-50">
+            </div>
+
+            <div class="text-center mb-6">
+                <h2 class="text-xl font-black text-slate-900 tracking-tight">LS Odontología</h2>
+                <p class="text-xs font-semibold text-blue-600 uppercase tracking-widest mt-0.5">Auditoría & Liquidaciones OSDE</p>
+                <p class="text-xs text-slate-500 mt-2">Ingresa con tu usuario y contraseña para acceder al sistema.</p>
+            </div>
+
+            <!-- Formulario de Login -->
+            <form @submit.prevent="submitLogin()" class="w-full space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-sm">
+                            <i class="fa-solid fa-envelope"></i>
+                        </div>
+                        <input type="email" x-model="loginForm.email" required placeholder="ejemplo@hotmail.com" class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-slate-50 focus:bg-white font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contraseña</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-sm">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <input type="password" x-model="loginForm.password" required placeholder="••••••••" class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-slate-50 focus:bg-white font-medium">
+                    </div>
+                </div>
+
+                <!-- Mensaje de error -->
+                <div x-show="loginForm.error" class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-exclamation shrink-0 text-sm"></i>
+                    <span x-text="loginForm.error"></span>
+                </div>
+
+                <button type="submit" :disabled="loginForm.loading" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-blue-500/30 transition flex items-center justify-center space-x-2 disabled:opacity-50 mt-2">
+                    <span x-show="loginForm.loading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                    <span x-text="loginForm.loading ? 'Verificando...' : 'Iniciar Sesión'"></span>
+                </button>
+            </form>
+
+            <div class="mt-6 pt-4 border-t border-slate-100 text-center w-full">
+                <span class="text-[11px] text-slate-400 flex items-center justify-center space-x-1">
+                    <i class="fa-solid fa-shield-halved text-emerald-500"></i>
+                    <span>Acceso protegido y encriptado</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL PROTEGIDO (Sólo visible si currentUser) -->
+    <div x-show="currentUser" class="flex-1 flex flex-col" style="display: none;">
+
     <!-- Top Navigation Header Responsive -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
@@ -124,8 +184,8 @@
                 </button>
             </div>
 
-            <!-- Selector de Período y Botón de Subida -->
-            <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+            <!-- Selector de Período, Botón de Subida y Perfil de Usuario -->
+            <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-end flex-wrap gap-y-2">
                 <div class="flex-1 sm:flex-none flex items-center space-x-1.5 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 min-w-0">
                     <span class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase shrink-0">Mes:</span>
                     <select x-model="selectedPeriodId" @change="loadPeriodData(selectedPeriodId)" class="bg-transparent font-bold text-xs sm:text-sm text-slate-800 focus:outline-none cursor-pointer truncate w-full">
@@ -140,11 +200,35 @@
                     <span>Instalar App</span>
                 </button>
 
-                <button @click="showUploadModal = true" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 shadow transition">
+                <button @click="openUploadModal()" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 shadow transition">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
                     <span class="hidden sm:inline">Cargar Nuevo Mes</span>
                     <span class="sm:hidden">Subir</span>
                 </button>
+
+                <!-- Menú de Usuario Logueado -->
+                <div class="relative flex items-center space-x-1.5 pl-2 border-l border-slate-200" x-data="{ userMenuOpen: false }">
+                    <button @click="userMenuOpen = !userMenuOpen" class="flex items-center space-x-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-medium transition">
+                        <div class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]" x-text="currentUser?.nombre ? currentUser.nombre.charAt(0).toUpperCase() : 'U'"></div>
+                        <span class="max-w-[100px] truncate hidden md:inline" x-text="currentUser?.nombre || currentUser?.email"></span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+
+                    <div x-show="userMenuOpen" @click.away="userMenuOpen = false" class="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
+                        <div class="px-3 py-2 border-b border-slate-100">
+                            <p class="font-bold text-slate-800" x-text="currentUser?.nombre"></p>
+                            <p class="text-[11px] text-slate-400 truncate" x-text="currentUser?.email"></p>
+                        </div>
+                        <button @click="userMenuOpen = false; showChangePwdModal = true; resetPwdForm();" class="w-full text-left px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center space-x-2">
+                            <i class="fa-solid fa-key text-blue-600 w-4 text-center"></i>
+                            <span>Cambiar Contraseña</span>
+                        </button>
+                        <button @click="logout()" class="w-full text-left px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center space-x-2">
+                            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i>
+                            <span>Cerrar Sesión</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -1017,90 +1101,248 @@
     </div>
 
     <!-- Upload Modal Responsivo -->
-    <div x-show="showUploadModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div @click.away="showUploadModal = false" class="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col p-5 sm:p-6 shadow-2xl border border-slate-200 overflow-y-auto">
+    </div>
+
+    <!-- Modal de Cambio de Contraseña -->
+    <div x-show="showChangePwdModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
+        <div @click.away="showChangePwdModal = false" class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-slate-900">Procesar Nueva Liquidación</h3>
-                <button @click="showUploadModal = false" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Cambiar Contraseña</h3>
+                </div>
+                <button @click="showChangePwdModal = false" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
             </div>
 
-            <form @submit.prevent="submitUpload()">
-                <div class="space-y-4">
+            <p class="text-xs text-slate-500 mb-4">Ingresa tu contraseña actual y la nueva contraseña que deseas usar para iniciar sesión.</p>
+
+            <form @submit.prevent="submitChangePassword()" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Contraseña Actual</label>
+                    <input type="password" x-model="pwdForm.current" required placeholder="Tu contraseña provisoria o actual" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nueva Contraseña</label>
+                    <input type="password" x-model="pwdForm.new" required minlength="6" placeholder="Mínimo 6 caracteres" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Confirmar Nueva Contraseña</label>
+                    <input type="password" x-model="pwdForm.confirm" required minlength="6" placeholder="Repite la nueva contraseña" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div x-show="pwdForm.error" class="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-exclamation shrink-0"></i>
+                    <span x-text="pwdForm.error"></span>
+                </div>
+
+                <div x-show="pwdForm.success" class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-check shrink-0"></i>
+                    <span x-text="pwdForm.success"></span>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" @click="showChangePwdModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" :disabled="pwdForm.loading" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-xs font-semibold rounded-lg shadow disabled:opacity-50 flex items-center space-x-1.5">
+                        <span x-show="pwdForm.loading" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
+                        <span x-text="pwdForm.loading ? 'Guardando...' : 'Guardar Nueva Contraseña'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upload Modal Modular Renovado -->
+    <div x-show="showUploadModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" style="display: none;">
+        <div @click.away="showUploadModal = false" class="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col p-5 sm:p-6 shadow-2xl border border-slate-200 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Período a Conciliar</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <select x-model="selectedUploadMonth" class="w-full px-3 py-2 text-sm font-medium border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                                    <option value="Enero">Enero</option>
-                                    <option value="Febrero">Febrero</option>
-                                    <option value="Marzo">Marzo</option>
-                                    <option value="Abril">Abril</option>
-                                    <option value="Mayo">Mayo</option>
-                                    <option value="Junio">Junio</option>
-                                    <option value="Julio">Julio</option>
-                                    <option value="Agosto">Agosto</option>
-                                    <option value="Septiembre">Septiembre</option>
-                                    <option value="Octubre">Octubre</option>
-                                    <option value="Noviembre">Noviembre</option>
-                                    <option value="Diciembre">Diciembre</option>
-                                </select>
-                            </div>
-                            <div>
-                                <select x-model="selectedUploadYear" class="w-full px-3 py-2 text-sm font-medium border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                                    <template x-for="y in availableYears" :key="y">
-                                        <option :value="y" x-text="y"></option>
-                                    </template>
-                                </select>
-                            </div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Cargar Archivos de Liquidación</h3>
+                        <p class="text-xs text-slate-500">Sube la liquidación de OSDE y los archivos de cada profesional de forma individual.</p>
+                    </div>
+                </div>
+                <button @click="showUploadModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <form @submit.prevent="submitUpload()" class="space-y-4">
+                <!-- Selector de Período -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Período a Conciliar</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <select x-model="selectedUploadMonth" class="w-full px-3 py-2 text-sm font-semibold border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="Enero">Enero</option>
+                                <option value="Febrero">Febrero</option>
+                                <option value="Marzo">Marzo</option>
+                                <option value="Abril">Abril</option>
+                                <option value="Mayo">Mayo</option>
+                                <option value="Junio">Junio</option>
+                                <option value="Julio">Julio</option>
+                                <option value="Agosto">Agosto</option>
+                                <option value="Septiembre">Septiembre</option>
+                                <option value="Octubre">Octubre</option>
+                                <option value="Noviembre">Noviembre</option>
+                                <option value="Diciembre">Diciembre</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select x-model="selectedUploadYear" class="w-full px-3 py-2 text-sm font-semibold border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <template x-for="y in availableYears" :key="y">
+                                    <option :value="y" x-text="y"></option>
+                                </template>
+                            </select>
                         </div>
                     </div>
+                </div>
 
-                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs text-blue-900 flex items-start space-x-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-blue-600 text-sm mt-0.5"></i>
-                        <span>Sube la <strong>Liquidación OSDE (.pdf)</strong> y las <strong>planillas de los profesionales (.pdf)</strong>. El sistema validará que las fechas de emisión coincidan y guardará los respaldos en Supabase.</span>
+                <!-- SECCIÓN 1: LIQUIDACIÓN DE OSDE -->
+                <div class="bg-blue-50/60 rounded-xl border border-blue-200 p-3.5 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                            <span class="text-xs font-bold text-blue-950 uppercase tracking-wider">Liquidación General OSDE (.pdf)</span>
+                        </div>
+                        <span class="text-[11px] font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">Requerido</span>
                     </div>
 
-                    <div class="border-2 border-dashed border-blue-300 bg-blue-50/30 hover:bg-blue-50/60 transition rounded-xl p-5 text-center cursor-pointer">
-                        <input type="file" multiple id="pdfFiles" class="hidden" accept=".pdf" @change="handleFilesSelected">
-                        <label for="pdfFiles" class="cursor-pointer block">
-                            <i class="fa-solid fa-file-pdf text-3xl text-blue-500 mb-2"></i>
-                            <p class="text-sm font-semibold text-slate-800">Seleccionar o soltar archivos PDF</p>
-                            <p class="text-xs text-slate-500 mt-0.5">Liquidación OSDE + Planillas de profesionales</p>
-                        </label>
-                    </div>
+                    <!-- Input file oculto para OSDE -->
+                    <input type="file" id="fileInputOsde" accept=".pdf" class="hidden" @change="onOsdeFileChanged($event)">
 
-                    <!-- Lista en vivo de archivos identificados -->
-                    <div x-show="parsedFilesList.length > 0" class="space-y-1.5 max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1">Archivos detectados:</p>
-                        <template x-for="(f, idx) in parsedFilesList" :key="idx">
-                            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs"
-                                 :class="f.isOsde ? 'bg-blue-50/80 border-blue-200 text-blue-900' : 'bg-white border-slate-200 text-slate-800'">
-                                <div class="flex items-center space-x-2 truncate mr-2">
-                                    <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
-                                    <span class="font-bold" x-text="f.isOsde ? 'Archivo de OSDE' : 'Médico: ' + f.medico"></span>
-                                    <span class="text-[10px] text-slate-400 truncate" x-text="'(' + f.rawName + ')'"></span>
+                    <!-- Estado: Sin archivo -->
+                    <template x-if="!selectedOsdeFile">
+                        <div class="border-2 border-dashed border-blue-300 hover:border-blue-400 bg-white rounded-lg p-3 text-center cursor-pointer transition" @click="document.getElementById('fileInputOsde').click()">
+                            <i class="fa-solid fa-file-invoice-dollar text-2xl text-blue-500 mb-1"></i>
+                            <p class="text-xs font-semibold text-slate-800">Seleccionar PDF de Liquidación OSDE</p>
+                            <p class="text-[10px] text-slate-400">Haz clic aquí para buscar el archivo</p>
+                        </div>
+                    </template>
+
+                    <!-- Estado: Con archivo cargado -->
+                    <template x-if="selectedOsdeFile">
+                        <div class="flex items-center justify-between bg-white border border-blue-200 rounded-lg p-2.5">
+                            <div class="flex items-center space-x-2.5 truncate mr-2">
+                                <i class="fa-solid fa-circle-check text-emerald-500 text-base shrink-0"></i>
+                                <div class="truncate">
+                                    <p class="text-xs font-bold text-slate-800 truncate" x-text="selectedOsdeFile.name"></p>
+                                    <p class="text-[10px] text-slate-400" x-text="formatBytes(selectedOsdeFile.size)"></p>
                                 </div>
-                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                                      :class="f.isOsde ? 'bg-blue-600 text-white' : 'bg-emerald-100 text-emerald-800'"
-                                      x-text="f.isOsde ? 'OSDE General' : 'Profesional'"></span>
+                            </div>
+                            <div class="flex items-center space-x-1.5 shrink-0">
+                                <button type="button" @click="document.getElementById('fileInputOsde').click()" class="px-2 py-1 text-[11px] font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 flex items-center space-x-1">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                    <span>Cambiar</span>
+                                </button>
+                                <button type="button" @click="removeOsdeFile()" class="px-2 py-1 text-[11px] font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 rounded border border-rose-200 flex items-center space-x-1">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                    <span>Eliminar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- SECCIÓN 2: LIQUIDACIÓN DE CADA PROFESIONAL -->
+                <div class="bg-slate-50 rounded-xl border border-slate-200 p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                            <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">Planillas de Profesionales</span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 font-medium" x-text="countUploadedProfFiles() + ' de ' + perfilesMedicos.length + ' cargados'"></span>
+                    </div>
+
+                    <!-- Lista de profesionales en el sistema con sus botones de carga individual -->
+                    <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        <template x-for="medico in perfilesMedicos" :key="medico.id">
+                            <div class="bg-white border rounded-lg p-2.5 flex items-center justify-between transition"
+                                 :class="profFilesMap[medico.id] ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-200'">
+                                <!-- Info Profesional -->
+                                <div class="flex items-center space-x-2.5 truncate mr-2">
+                                    <!-- Avatar o Initials -->
+                                    <div class="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                                        <template x-if="medico.avatar_url">
+                                            <img :src="medico.avatar_url" class="w-full h-full object-cover">
+                                        </template>
+                                        <template x-if="!medico.avatar_url">
+                                            <span class="text-[11px] font-bold text-slate-600" x-text="medico.nombre ? medico.nombre.charAt(0).toUpperCase() : 'M'"></span>
+                                        </template>
+                                    </div>
+                                    <div class="truncate">
+                                        <p class="text-xs font-bold text-slate-800 truncate" x-text="medico.nombre"></p>
+                                        <template x-if="profFilesMap[medico.id]">
+                                            <p class="text-[10px] text-emerald-700 flex items-center space-x-1 truncate">
+                                                <i class="fa-solid fa-circle-check text-[9px]"></i>
+                                                <span class="truncate" x-text="profFilesMap[medico.id].file.name"></span>
+                                            </p>
+                                        </template>
+                                        <template x-if="!profFilesMap[medico.id]">
+                                            <p class="text-[10px] text-slate-400">Sin archivo asignado</p>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Acciones por Profesional -->
+                                <div class="flex items-center space-x-1.5 shrink-0">
+                                    <!-- Input file oculto dinámico para este médico -->
+                                    <input type="file" :id="'profFile_' + medico.id" accept=".pdf" class="hidden" @change="onProfFileChanged($event, medico)">
+
+                                    <template x-if="!profFilesMap[medico.id]">
+                                        <button type="button" @click="document.getElementById('profFile_' + medico.id).click()" class="px-2.5 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 flex items-center space-x-1">
+                                            <i class="fa-solid fa-upload text-[11px]"></i>
+                                            <span>Subir PDF</span>
+                                        </button>
+                                    </template>
+
+                                    <template x-if="profFilesMap[medico.id]">
+                                        <div class="flex items-center space-x-1">
+                                            <button type="button" @click="document.getElementById('profFile_' + medico.id).click()" class="px-2 py-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 flex items-center space-x-1" title="Cambiar archivo">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                                <span class="hidden sm:inline">Cambiar</span>
+                                            </button>
+                                            <button type="button" @click="removeProfFile(medico.id)" class="px-2 py-1 text-[11px] font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 rounded border border-rose-200 flex items-center space-x-1" title="Eliminar archivo">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                                <span class="hidden sm:inline">Quitar</span>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </template>
                     </div>
 
-                    <div class="pt-1 border-t border-slate-100">
-                        <label class="flex items-center space-x-2 text-xs text-slate-500 cursor-pointer">
-                            <input type="checkbox" id="useExisting" x-model="useExistingFolderFiles" class="rounded text-blue-600">
-                            <span>Modo desarrollador: usar PDFs locales de prueba</span>
-                        </label>
+                    <!-- Botón para agregar otro profesional si es nuevo -->
+                    <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-500">¿Falta algún profesional en la lista?</span>
+                        <button type="button" @click="promptCrearProfesional()" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>+ Dar de alta nuevo</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 mt-6">
-                    <button type="button" @click="showUploadModal = false" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
-                    <button type="submit" :disabled="uploadLoading" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 text-sm font-semibold rounded-lg shadow disabled:opacity-50 flex items-center space-x-2">
-                        <span x-show="uploadLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                        <span x-text="uploadLoading ? 'Procesando...' : 'Iniciar Conciliación'"></span>
-                    </button>
+                <!-- Modo desarrollador -->
+                <div class="pt-1">
+                    <label class="flex items-center space-x-2 text-xs text-slate-500 cursor-pointer">
+                        <input type="checkbox" id="useExisting" x-model="useExistingFolderFiles" class="rounded text-blue-600">
+                        <span>Modo desarrollador: usar PDFs locales de prueba</span>
+                    </label>
+                </div>
+
+                <!-- Footer del modal de subida -->
+                <div class="flex justify-between items-center pt-3 border-t border-slate-200">
+                    <span class="text-xs text-slate-500 font-medium" x-text="totalFilesToProcessSummary()"></span>
+                    <div class="flex space-x-2">
+                        <button type="button" @click="showUploadModal = false" class="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                        <button type="submit" :disabled="uploadLoading || (!useExistingFolderFiles && !selectedOsdeFile)" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg shadow disabled:opacity-50 flex items-center space-x-2">
+                            <span x-show="uploadLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                            <span x-text="uploadLoading ? 'Procesando...' : 'Iniciar Conciliación'"></span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1120,6 +1362,28 @@
                 loading: true,
                 showUploadModal: false,
                 uploadLoading: false,
+
+                // Estado de Autenticación
+                currentUser: JSON.parse(localStorage.getItem('ls_user') || 'null'),
+                loginForm: {
+                    email: '',
+                    password: '',
+                    error: '',
+                    loading: false
+                },
+                showChangePwdModal: false,
+                pwdForm: {
+                    current: '',
+                    new: '',
+                    confirm: '',
+                    error: '',
+                    success: '',
+                    loading: false
+                },
+
+                // Estado de Subida Modular
+                selectedOsdeFile: null,
+                profFilesMap: {}, // { medicoId: { file: File, medico: medicoObj } }
                 selectedUploadMonth: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][new Date().getMonth()],
                 selectedUploadYear: new Date().getFullYear(),
                 availableYears: [new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1],
@@ -1149,8 +1413,96 @@
 
                 async init() {
                     this.initPwa();
-                    await this.loadPeriodos();
-                    await this.loadProfesionales();
+                    if (this.currentUser) {
+                        await this.loadPeriodos();
+                        await this.loadProfesionales();
+                    }
+                },
+
+                async submitLogin() {
+                    this.loginForm.error = '';
+                    this.loginForm.loading = true;
+                    try {
+                        const res = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: this.loginForm.email.trim(),
+                                password: this.loginForm.password
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.currentUser = data.user;
+                            localStorage.setItem('ls_user', JSON.stringify(data.user));
+                            this.loginForm.password = '';
+                            await this.loadPeriodos();
+                            await this.loadProfesionales();
+                        } else {
+                            this.loginForm.error = data.detail || 'Email o contraseña incorrectos.';
+                        }
+                    } catch (e) {
+                        this.loginForm.error = 'Error de conexión: ' + e.message;
+                    } finally {
+                        this.loginForm.loading = false;
+                    }
+                },
+
+                logout() {
+                    this.currentUser = null;
+                    localStorage.removeItem('ls_user');
+                    this.loginForm.password = '';
+                    this.loginForm.error = '';
+                },
+
+                resetPwdForm() {
+                    this.pwdForm = {
+                        current: '',
+                        new: '',
+                        confirm: '',
+                        error: '',
+                        success: '',
+                        loading: false
+                    };
+                },
+
+                async submitChangePassword() {
+                    this.pwdForm.error = '';
+                    this.pwdForm.success = '';
+                    if (this.pwdForm.new !== this.pwdForm.confirm) {
+                        this.pwdForm.error = 'La nueva contraseña y su confirmación no coinciden.';
+                        return;
+                    }
+                    if (this.pwdForm.new.length < 6) {
+                        this.pwdForm.error = 'La nueva contraseña debe tener al menos 6 caracteres.';
+                        return;
+                    }
+                    this.pwdForm.loading = true;
+                    try {
+                        const res = await fetch('/api/auth/change-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: this.currentUser.email,
+                                current_password: this.pwdForm.current,
+                                new_password: this.pwdForm.new
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.pwdForm.success = '¡Contraseña actualizada con éxito!';
+                            setTimeout(() => {
+                                this.showChangePwdModal = false;
+                                this.resetPwdForm();
+                            }, 1500);
+                        } else {
+                            this.pwdForm.error = data.detail || 'Error al cambiar la contraseña.';
+                        }
+                    } catch (e) {
+                        this.pwdForm.error = 'Error de conexión: ' + e.message;
+                    } finally {
+                        this.pwdForm.loading = false;
+                    }
                 },
 
                 initPwa() {
@@ -1363,34 +1715,92 @@
                     window.print();
                 },
 
-                parsedFilesList: [],
+                // --- MÉTODOS DE SUBIDA MODULAR ---
+                openUploadModal() {
+                    this.showUploadModal = true;
+                },
 
-                handleFilesSelected(e) {
-                    const files = Array.from(e.target.files);
-                    this.selectedFilesCount = files.length;
-                    this.parsedFilesList = [];
+                onOsdeFileChanged(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.selectedOsdeFile = file;
+                    }
+                },
 
-                    files.forEach(f => {
-                        const name = f.name;
-                        const nameLower = name.toLowerCase();
-                        const isOsde = nameLower.includes('osde');
-                        
-                        let medico = '';
-                        if (!isOsde) {
-                            // Extraer nombre del médico desde el nombre del archivo (ej: liquidacionAriel.pdf -> Ariel)
-                            let clean = name.replace(/\.pdf$/i, '');
-                            clean = clean.replace(/^(liquidacion|liq|planilla)[_\-\s]*/i, '');
-                            // Si tiene formato camelCase o guiones, limpiarlo
-                            if (!clean) clean = name;
-                            medico = clean.charAt(0).toUpperCase() + clean.slice(1);
-                        }
+                removeOsdeFile() {
+                    this.selectedOsdeFile = null;
+                    const input = document.getElementById('fileInputOsde');
+                    if (input) input.value = '';
+                },
 
-                        this.parsedFilesList.push({
-                            rawName: name,
-                            isOsde: isOsde,
+                onProfFileChanged(event, medico) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.profFilesMap[medico.id] = {
+                            file: file,
                             medico: medico
+                        };
+                    }
+                },
+
+                removeProfFile(medicoId) {
+                    delete this.profFilesMap[medicoId];
+                    // Forzar reactividad de Alpine reasignando el objeto
+                    this.profFilesMap = { ...this.profFilesMap };
+                    const input = document.getElementById('profFile_' + medicoId);
+                    if (input) input.value = '';
+                },
+
+                countUploadedProfFiles() {
+                    return Object.keys(this.profFilesMap).length;
+                },
+
+                totalFilesToProcessSummary() {
+                    const profCount = this.countUploadedProfFiles();
+                    const hasOsde = this.selectedOsdeFile ? 1 : 0;
+                    if (this.useExistingFolderFiles) {
+                        return "Modo desarrollo: usando PDFs locales del servidor";
+                    }
+                    if (hasOsde === 0 && profCount === 0) {
+                        return "Ningún archivo seleccionado todavía";
+                    }
+                    return `${hasOsde} liquidación OSDE + ${profCount} planilla(s) de profesionales seleccionada(s)`;
+                },
+
+                formatBytes(bytes) {
+                    if (!bytes) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                },
+
+                async promptCrearProfesional() {
+                    const nombre = prompt("Ingresa el Nombre y Apellido del nuevo profesional:");
+                    if (!nombre || !nombre.trim()) return;
+
+                    const porcStr = prompt("Porcentaje de liquidación (ejemplo: 50):", "50");
+                    const porc = parseFloat(porcStr) || 50.0;
+
+                    try {
+                        const res = await fetch('/api/profesionales/nuevo', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nombre: nombre.trim(),
+                                porcentaje: porc
+                            })
                         });
-                    });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            await this.loadProfesionales();
+                            alert(`¡Dr(a). ${data.profesional.nombre} dado(a) de alta exitosamente! Ya aparece en la lista de subida.`);
+                        } else {
+                            alert("Error al dar de alta: " + (data.detail || "Error desconocido"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
+                    }
                 },
 
                 async submitUpload() {
@@ -1402,10 +1812,17 @@
                         formData.append('use_existing', this.useExistingFolderFiles);
 
                         if (!this.useExistingFolderFiles) {
-                            const fileInput = document.getElementById('pdfFiles');
-                            for (let i = 0; i < fileInput.files.length; i++) {
-                                formData.append('files', fileInput.files[i]);
+                            if (this.selectedOsdeFile) {
+                                formData.append('osde_file', this.selectedOsdeFile);
                             }
+                            
+                            // Adjuntar cada archivo de profesional con su identificador
+                            Object.values(this.profFilesMap).forEach(item => {
+                                if (item && item.file) {
+                                    // Enviamos como campo individual para preservar asignación exacta
+                                    formData.append(`prof_file_${item.medico.nombre}`, item.file);
+                                }
+                            });
                         }
 
                         const res = await fetch('/api/process', {
@@ -1416,7 +1833,9 @@
                         const result = await res.json();
                         if (result.success) {
                             this.showUploadModal = false;
-                            this.uploadPeriodName = '';
+                            // Limpiar archivos seleccionados
+                            this.removeOsdeFile();
+                            this.profFilesMap = {};
                             await this.loadPeriodos();
                             this.selectedPeriodId = result.periodo_id;
                             await this.loadPeriodData(this.selectedPeriodId);

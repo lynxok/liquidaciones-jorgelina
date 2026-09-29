@@ -201,9 +201,50 @@ def init_db():
             actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
+    # Table: usuarios (Login y autenticacion)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            nombre TEXT,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
+
+    # Sembrar usuarios iniciales si no existen
+    seed_users = [
+        ("ignaciovalente@hotmail.com", "Valente2026!", "Ignacio Valente"),
+        ("jorvma@hotmail.com", "Jorvma2026!", "Jorgelina")
+    ]
+    for email, pwd, nombre in seed_users:
+        c.execute("SELECT id FROM usuarios WHERE LOWER(email) = LOWER(?)", (email,))
+        if not c.fetchone():
+            salt, hsh = hash_password(pwd)
+            c.execute('''
+                INSERT INTO usuarios (email, password_hash, salt, nombre)
+                VALUES (?, ?, ?, ?)
+            ''', (email.lower(), hsh, salt, nombre))
+            conn.commit()
     conn.close()
+
+import hashlib
+import secrets
+
+def hash_password(password: str, salt: str = None) -> tuple:
+    if not salt:
+        salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    return salt, hashed
+
+def verify_password(password: str, salt: str, password_hash: str) -> bool:
+    _, calculated = hash_password(password, salt)
+    return calculated == password_hash
+
 
 def store_periodo_file(periodo_id: int, tipo: str, nombre_archivo: str, file_bytes: bytes, profesional: str = None):
     """Guarda el archivo original en Supabase PostgreSQL con fecha de expiracion de 90 dias."""
