@@ -267,18 +267,37 @@ def get_periodo_detail(periodo_id: int):
         "logs": [dict(l) for l in logs]
     }
 
+@app.delete("/api/periodo/{periodo_id}")
+def delete_periodo(periodo_id: int):
+    """Elimina por completo un período y todos sus registros en cascada."""
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, nombre FROM periodos WHERE id = ?", (periodo_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return JSONResponse(status_code=404, content={"success": False, "error": "Período no encontrado."})
+    
+    c.execute("DELETE FROM periodos WHERE id = ?", (periodo_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True, "message": f"Período '{row['nombre']}' eliminado con éxito."}
+
 @app.post("/api/process")
 async def process_month(
     request: Request,
     period_name: str = Form(...),
     use_existing: bool = Form(False),
+    overwrite_existing: bool = Form(False),
     osde_file: UploadFile = File(default=None),
     files: List[UploadFile] = File(default=[])
 ):
     try:
-        # Normalizar use_existing si viene como string
+        # Normalizar flags booleanos si vienen como string
         if isinstance(use_existing, str):
             use_existing = use_existing.lower() in ("true", "1", "t")
+        if isinstance(overwrite_existing, str):
+            overwrite_existing = overwrite_existing.lower() in ("true", "1", "t")
 
         if use_existing:
             # Use current project directory PDFs
@@ -331,7 +350,7 @@ async def process_month(
                 return {"success": False, "error": "Debe incluir al menos una liquidación de profesional (.pdf)."}
                 
         # Run reconciliation
-        res = matcher.reconcile_period(period_name, target_osde, prof_files_paths)
+        res = matcher.reconcile_period(period_name, target_osde, prof_files_paths, overwrite_existing=overwrite_existing)
         return {"success": True, "periodo_id": res["periodo_id"]}
         
     except Exception as e:

@@ -193,6 +193,10 @@
                             <option :value="p.id" x-text="p.nombre + ' (' + p.fecha_proceso.split(' ')[0] + ')'"></option>
                         </template>
                     </select>
+                    <!-- Botón para eliminar el período actual -->
+                    <button x-show="selectedPeriodId" @click="confirmDeletePeriod(selectedPeriodId)" type="button" class="ml-1 text-slate-400 hover:text-rose-600 p-1 rounded transition text-xs shrink-0" title="Eliminar este período cargado">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
                 </div>
 
                 <button x-show="deferredPrompt" @click="installPwa()" class="hidden sm:inline-flex bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-semibold items-center space-x-1.5 border border-slate-300 transition">
@@ -1325,9 +1329,13 @@
                     </div>
                 </div>
 
-                <!-- Modo desarrollador -->
-                <div class="pt-1">
-                    <label class="flex items-center space-x-2 text-xs text-slate-500 cursor-pointer">
+                <!-- Opciones avanzadas de procesamiento -->
+                <div class="pt-2 border-t border-slate-100 space-y-1.5">
+                    <label class="flex items-center space-x-2 text-xs text-slate-700 font-medium cursor-pointer">
+                        <input type="checkbox" id="overwriteExisting" x-model="overwriteExistingPeriod" class="rounded text-blue-600 focus:ring-blue-500">
+                        <span>Sobrescribir si el período o trámite de OSDE ya existe</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-[11px] text-slate-400 cursor-pointer">
                         <input type="checkbox" id="useExisting" x-model="useExistingFolderFiles" class="rounded text-blue-600">
                         <span>Modo desarrollador: usar PDFs locales de prueba</span>
                     </label>
@@ -1384,6 +1392,7 @@
                 // Estado de Subida Modular
                 selectedOsdeFile: null,
                 profFilesMap: {}, // { medicoId: { file: File, medico: medicoObj } }
+                overwriteExistingPeriod: true, // Por defecto true para permitir recargar/reprocesar meses
                 selectedUploadMonth: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][new Date().getMonth()],
                 selectedUploadYear: new Date().getFullYear(),
                 availableYears: [new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1],
@@ -1810,6 +1819,7 @@
                         let formData = new FormData();
                         formData.append('period_name', periodName);
                         formData.append('use_existing', this.useExistingFolderFiles);
+                        formData.append('overwrite_existing', this.overwriteExistingPeriod);
 
                         if (!this.useExistingFolderFiles) {
                             if (this.selectedOsdeFile) {
@@ -1846,6 +1856,29 @@
                         alert("Error de conexión: " + e.message);
                     } finally {
                         this.uploadLoading = false;
+                    }
+                },
+
+                async confirmDeletePeriod(periodoId) {
+                    const periodo = this.periodos.find(p => p.id == periodoId);
+                    const nombrePeriodo = periodo ? periodo.nombre : 'este período';
+                    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente la liquidación de ${nombrePeriodo}?\n\nEsta acción borrará todos los cruces, débitos y registros asociados a ese mes para que puedas volver a cargarlo desde cero.`)) {
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(`/api/periodo/${periodoId}`, {
+                            method: 'DELETE'
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            alert(`El período '${nombrePeriodo}' ha sido eliminado correctamente.`);
+                            await this.loadPeriodos();
+                        } else {
+                            alert("Error al eliminar: " + (data.error || "No se pudo eliminar el período."));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
                     }
                 },
 

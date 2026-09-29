@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Tuple
 import nomenclator
 import database
 
-def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], parser_mod=None) -> Dict[str, Any]:
+def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], parser_mod=None, overwrite_existing: bool = False) -> Dict[str, Any]:
     if parser_mod is None:
         import parser as parser_mod
         
@@ -39,11 +39,17 @@ def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], pa
         chk_cur = chk_conn.cursor()
         chk_cur.execute("SELECT id, nombre FROM periodos WHERE osde_tramite = ?", (tramite_osde,))
         existing_p = chk_cur.fetchone()
-        chk_conn.close()
         if existing_p:
-            raise ValueError(
-                f"Este trámite de OSDE ({tramite_osde}) ya fue liquidado anteriormente en el período '{existing_p['nombre']}'."
-            )
+            if overwrite_existing:
+                # Eliminar periodo anterior para reemplazarlo limpiamente
+                chk_cur.execute("DELETE FROM periodos WHERE id = ?", (existing_p['id'],))
+                chk_conn.commit()
+            else:
+                chk_conn.close()
+                raise ValueError(
+                    f"Este trámite de OSDE ({tramite_osde}) ya fue liquidado anteriormente en el período '{existing_p['nombre']}'. Activa la opción 'Sobrescribir si ya existe' o elimina el período anterior para volver a cargarlo."
+                )
+        chk_conn.close()
 
     all_prof_meta = []
     all_prof_items = []
