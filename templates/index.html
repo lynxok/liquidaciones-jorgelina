@@ -59,7 +59,7 @@
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            .no-print, header, nav, .sticky, #uploadModal, button, .pwa-banner {
+            .no-print, header, nav, .sticky, #uploadModal, button, .pwa-banner, .fixed, .backdrop-blur-sm, [role="dialog"] {
                 display: none !important;
             }
             #screenContent {
@@ -2129,14 +2129,14 @@
                         <input 
                             type="text" 
                             x-model="protesisForm.paciente_search" 
-                            @input="buscarPacientesProtesis($event.target.value); showPacientesDropdown = true;"
+                            @input="buscarPacientesProtesis($event.target.value); showPacientesDropdownProtesis = true;"
                             placeholder="Buscar paciente en el sistema..." 
                             class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
                     </div>
                     
                     <!-- Dropdown sugerencias -->
-                    <div x-show="showPacientesDropdown && pacientesSugeridos.length > 0" @click.away="showPacientesDropdown = false" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto divide-y divide-slate-100 text-xs">
-                        <template x-for="sug in pacientesSugeridos" :key="'sug-'+sug.id">
+                    <div x-show="showPacientesDropdownProtesis && pacientesSugeridosProtesis.length > 0" @click.away="showPacientesDropdownProtesis = false" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto divide-y divide-slate-100 text-xs">
+                        <template x-for="sug in pacientesSugeridosProtesis" :key="'sug-'+sug.id">
                             <div @click="seleccionarPacienteProtesis(sug)" class="p-2 hover:bg-teal-50 cursor-pointer flex justify-between items-center">
                                 <div>
                                     <span class="font-bold text-slate-800" x-text="sug.apellido"></span>
@@ -2907,6 +2907,7 @@
                 },
 
                 async imprimirRechazados() {
+                    this.showRechazadosModal = false;
                     this.printMode = 'rechazados';
                     await this.$nextTick();
                     await new Promise(r => setTimeout(r, 250));
