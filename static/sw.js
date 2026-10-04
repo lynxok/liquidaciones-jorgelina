@@ -1,6 +1,5 @@
-const CACHE_NAME = 'ls-odontologia-v3';
+const CACHE_NAME = 'ls-odontologia-v4';
 const ASSETS_TO_CACHE = [
-  '/',
   '/icon-192.png',
   '/icon-512.png',
   '/manifest.json'
