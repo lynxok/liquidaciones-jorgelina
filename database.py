@@ -198,7 +198,71 @@ def init_db():
             avatar_url TEXT,
             color TEXT DEFAULT 'blue',
             porcentaje_honorarios NUMERIC DEFAULT 100,
+            porcentaje_particular NUMERIC DEFAULT 100,
             actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    # Garantizar que exista la columna porcentaje_particular
+    try:
+        c.execute("ALTER TABLE profesionales_perfiles ADD COLUMN IF NOT EXISTS porcentaje_particular NUMERIC DEFAULT 100")
+    except Exception:
+        pass
+
+    # Table: pacientes (Directorio unificado de pacientes)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS pacientes (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            apellido TEXT NOT NULL,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Table: atenciones_particulares
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS atenciones_particulares (
+            id SERIAL PRIMARY KEY,
+            periodo_id INTEGER REFERENCES periodos(id) ON DELETE CASCADE,
+            fecha TEXT,
+            paciente TEXT NOT NULL,
+            profesional TEXT NOT NULL,
+            prestacion TEXT NOT NULL,
+            importe NUMERIC NOT NULL DEFAULT 0,
+            porcentaje_aplicado NUMERIC DEFAULT 100,
+            monto_profesional NUMERIC DEFAULT 0,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Table: gastos_laboratorio
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS gastos_laboratorio (
+            id SERIAL PRIMARY KEY,
+            periodo_id INTEGER REFERENCES periodos(id) ON DELETE CASCADE,
+            profesional TEXT NOT NULL,
+            fecha TEXT,
+            concepto TEXT NOT NULL,
+            monto_total NUMERIC NOT NULL DEFAULT 0,
+            porcentaje_profesional NUMERIC DEFAULT 0,
+            monto_profesional NUMERIC DEFAULT 0,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Table: ingresos_protesis
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ingresos_protesis (
+            id SERIAL PRIMARY KEY,
+            periodo_id INTEGER REFERENCES periodos(id) ON DELETE CASCADE,
+            profesional TEXT NOT NULL,
+            paciente_nombre TEXT NOT NULL,
+            paciente_apellido TEXT NOT NULL,
+            trabajo TEXT NOT NULL,
+            importe NUMERIC NOT NULL DEFAULT 0,
+            porcentaje_profesional NUMERIC DEFAULT 0,
+            monto_profesional NUMERIC DEFAULT 0,
+            fecha TEXT,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 

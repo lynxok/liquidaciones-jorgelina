@@ -252,6 +252,24 @@
                     <span x-show="rechazos.length > 0" class="bg-rose-100 text-rose-700 text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded-full" x-text="rechazos.length"></span>
                 </button>
 
+                <button @click="currentTab = 'particulares'" :class="currentTab === 'particulares' ? 'border-sky-600 text-sky-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-3 sm:py-4 px-1 border-b-2 text-xs sm:text-sm flex items-center space-x-1.5 shrink-0 transition">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                    <span>Atenciones Particulares</span>
+                    <span x-show="particulares.length > 0" class="bg-sky-100 text-sky-700 text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded-full" x-text="particulares.length"></span>
+                </button>
+
+                <button @click="currentTab = 'laboratorio'" :class="currentTab === 'laboratorio' ? 'border-amber-600 text-amber-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-3 sm:py-4 px-1 border-b-2 text-xs sm:text-sm flex items-center space-x-1.5 shrink-0 transition">
+                    <i class="fa-solid fa-flask"></i>
+                    <span>Gastos Laboratorio</span>
+                    <span x-show="laboratorios.length > 0" class="bg-amber-100 text-amber-700 text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded-full" x-text="laboratorios.length"></span>
+                </button>
+
+                <button @click="currentTab = 'protesis'" :class="currentTab === 'protesis' ? 'border-teal-600 text-teal-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-3 sm:py-4 px-1 border-b-2 text-xs sm:text-sm flex items-center space-x-1.5 shrink-0 transition">
+                    <i class="fa-solid fa-tooth"></i>
+                    <span>Ingresos por Prótesis</span>
+                    <span x-show="protesis.length > 0" class="bg-teal-100 text-teal-700 text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded-full" x-text="protesis.length"></span>
+                </button>
+
                 <button @click="currentTab = 'profesionales'" :class="currentTab === 'profesionales' ? 'border-emerald-600 text-emerald-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700'" class="py-3 sm:py-4 px-1 border-b-2 text-xs sm:text-sm flex items-center space-x-1.5 shrink-0 transition">
                     <i class="fa-solid fa-user-doctor"></i>
                     <span>Por Profesional</span>
@@ -324,13 +342,19 @@
                         <p class="text-xs text-slate-500 mt-1">Suma de planillas presentadas</p>
                     </div>
 
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-rose-400 hover:shadow-md transition group" @click="openRechazadosModal()">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Rechazado</span>
-                            <span class="p-2 bg-rose-50 text-rose-600 rounded-lg text-sm"><i class="fa-solid fa-circle-xmark"></i></span>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-rose-600 transition">Total Rechazado</span>
+                            <span class="p-2 bg-rose-50 text-rose-600 rounded-lg text-sm group-hover:bg-rose-100 transition"><i class="fa-solid fa-circle-xmark"></i></span>
                         </div>
                         <p class="text-2xl font-bold text-rose-600 mt-2" x-text="formatCurrency(periodoActual.total_rechazados_monto)"></p>
-                        <p class="text-xs text-slate-500 mt-1"><span class="font-bold text-rose-700" x-text="periodoActual.total_rechazados_cant"></span> rechazadas OSDE</p>
+                        <div class="flex items-center justify-between mt-1">
+                            <p class="text-xs text-slate-500"><span class="font-bold text-rose-700" x-text="periodoActual.total_rechazados_cant"></span> rechazadas OSDE</p>
+                            <span class="text-[11px] text-rose-600 font-bold group-hover:underline flex items-center space-x-1">
+                                <i class="fa-solid fa-file-invoice"></i>
+                                <span>Ver informe</span>
+                            </span>
+                        </div>
                     </div>
 
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -347,17 +371,56 @@
                             <span class="text-xs font-bold text-emerald-100 uppercase tracking-wider">Total a Pagar a Médicos</span>
                             <span class="p-2 bg-white/20 text-white rounded-lg text-sm"><i class="fa-solid fa-hand-holding-dollar"></i></span>
                         </div>
-                        <p class="text-2xl font-black mt-2 tracking-tight text-white font-mono" x-text="formatCurrency(totalHonorariosMedicos)"></p>
-                        <p class="text-xs text-emerald-100 mt-1">Calculado s/% configurado</p>
+                        <p class="text-2xl font-black mt-2 tracking-tight text-white font-mono" x-text="formatCurrency(totalGeneralPagarMedicos)"></p>
+                        <p class="text-xs text-emerald-100 mt-1">OSDE + Part. + Prót. - Lab.</p>
                     </div>
                 </div>
 
-                <!-- Resumen por Profesional Mini Table -->
+                <!-- KPI Cards Complementarios: Particulares, Laboratorios, Prótesis -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div @click="currentTab = 'particulares'" class="bg-sky-50/60 border border-sky-200 p-4 rounded-xl cursor-pointer hover:bg-sky-100/70 hover:border-sky-300 transition flex items-center justify-between group">
+                        <div>
+                            <span class="text-xs font-bold text-sky-800 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-hand-holding-dollar text-sky-600"></i>
+                                <span>Atenciones Particulares</span>
+                            </span>
+                            <p class="text-xl font-black text-sky-950 mt-1 font-mono" x-text="formatCurrency(totalParticularesPagar)"></p>
+                            <p class="text-[11px] text-sky-700">Total cobrado: <span class="font-semibold" x-text="formatCurrency(totalParticularesCobrado)"></span> (<span x-text="particulares.length"></span> atenc.)</p>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-sky-400 group-hover:text-sky-600 transition text-sm"></i>
+                    </div>
+
+                    <div @click="currentTab = 'laboratorio'" class="bg-amber-50/60 border border-amber-200 p-4 rounded-xl cursor-pointer hover:bg-amber-100/70 hover:border-amber-300 transition flex items-center justify-between group">
+                        <div>
+                            <span class="text-xs font-bold text-amber-800 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-flask text-amber-600"></i>
+                                <span>Gastos de Laboratorio</span>
+                            </span>
+                            <p class="text-xl font-black text-rose-700 mt-1 font-mono" x-text="'-' + formatCurrency(totalLaboratoriosDeduccion)"></p>
+                            <p class="text-[11px] text-amber-700">Costo total lab: <span class="font-semibold" x-text="formatCurrency(totalLaboratoriosGasto)"></span> (<span x-text="laboratorios.length"></span> trab.)</p>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-amber-400 group-hover:text-amber-600 transition text-sm"></i>
+                    </div>
+
+                    <div @click="currentTab = 'protesis'" class="bg-teal-50/60 border border-teal-200 p-4 rounded-xl cursor-pointer hover:bg-teal-100/70 hover:border-teal-300 transition flex items-center justify-between group">
+                        <div>
+                            <span class="text-xs font-bold text-teal-800 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-tooth text-teal-600"></i>
+                                <span>Ingresos por Prótesis</span>
+                            </span>
+                            <p class="text-xl font-black text-teal-950 mt-1 font-mono" x-text="formatCurrency(totalProtesisPagar)"></p>
+                            <p class="text-[11px] text-teal-700">Total cobrado: <span class="font-semibold" x-text="formatCurrency(totalProtesisCobrado)"></span> (<span x-text="protesis.length"></span> prót.)</p>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-teal-400 group-hover:text-teal-600 transition text-sm"></i>
+                    </div>
+                </div>
+
+                <!-- Resumen Consolidado por Profesional -->
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                         <div>
-                            <h2 class="font-bold text-slate-900 text-base">Estado de Liquidación por Profesional</h2>
-                            <p class="text-xs text-slate-500">Valores declarados, débitos por rechazo, diferencias y total a pagar según % configurado</p>
+                            <h2 class="font-bold text-slate-900 text-base">Estado de Liquidación Consolidada por Profesional</h2>
+                            <p class="text-xs text-slate-500">Consolidación mensual: Neto OSDE + Honorarios Particulares + Prótesis - Deducción de Laboratorio</p>
                         </div>
                         <div class="flex items-center space-x-2">
                             <button @click="imprimirTodos()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition">
@@ -375,13 +438,13 @@
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
                                     <th class="py-3 px-4">Profesional</th>
-                                    <th class="py-3 px-4 text-center">Prestaciones</th>
-                                    <th class="py-3 px-4 text-right">Total Declarado</th>
-                                    <th class="py-3 px-4 text-right text-rose-600">Dcto. Rechazos</th>
-                                    <th class="py-3 px-4 text-right text-indigo-600">Ajuste Dif. OSDE</th>
-                                    <th class="py-3 px-4 text-right font-bold text-slate-700">Neto Liquidable</th>
-                                    <th class="py-3 px-4 text-center text-purple-700 font-bold">% Asignado</th>
-                                    <th class="py-3 px-4 text-right font-bold text-emerald-700">A Pagar al Médico</th>
+                                    <th class="py-3 px-4 text-right">Neto OSDE Base</th>
+                                    <th class="py-3 px-4 text-center text-purple-700 font-bold">% OSDE</th>
+                                    <th class="py-3 px-4 text-right font-bold text-slate-800">A Pagar OSDE</th>
+                                    <th class="py-3 px-4 text-right text-sky-700 font-bold">+ Particulares</th>
+                                    <th class="py-3 px-4 text-right text-teal-700 font-bold">+ Prótesis</th>
+                                    <th class="py-3 px-4 text-right text-rose-600 font-bold">- Lab. Médico</th>
+                                    <th class="py-3 px-4 text-right font-black text-emerald-800 bg-emerald-50/50">Total Final a Pagar</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200">
@@ -396,18 +459,15 @@
                                             </template>
                                             <span x-text="prof.profesional"></span>
                                         </td>
-                                        <td class="py-3 px-4 text-center">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800" x-text="prof.total_prestaciones"></span>
-                                            <span x-show="prof.prestaciones_rechazadas > 0" class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-700" x-text="prof.prestaciones_rechazadas + ' rech.'"></span>
-                                        </td>
-                                        <td class="py-3 px-4 text-right text-slate-600 font-mono text-xs" x-text="formatCurrency(prof.total_declarado)"></td>
-                                        <td class="py-3 px-4 text-right font-mono font-semibold text-xs" :class="prof.total_descuentos_rechazos > 0 ? 'text-rose-600' : 'text-slate-400'" x-text="'-' + formatCurrency(prof.total_descuentos_rechazos)"></td>
-                                        <td class="py-3 px-4 text-right font-mono text-xs text-slate-700" x-text="(prof.total_diferencias >= 0 ? '+' : '') + formatCurrency(prof.total_diferencias)"></td>
-                                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-800 text-sm" x-text="formatCurrency(prof.total_neto_liquidable)"></td>
+                                        <td class="py-3 px-4 text-right font-mono text-xs text-slate-700" x-text="formatCurrency(prof.total_neto_liquidable)"></td>
                                         <td class="py-3 px-4 text-center">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700" x-text="getDoctorPorcentaje(prof.profesional) + '%'"></span>
                                         </td>
-                                        <td class="py-3 px-4 text-right font-mono font-black text-emerald-700 text-base" x-text="formatCurrency(getDoctorMontoPagar(prof))"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-800 text-sm" x-text="formatCurrency(getDoctorOSDEPagar(prof.profesional))"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-sky-700 text-sm" x-text="formatCurrency(getDoctorParticularesTotalPagar(prof.profesional))"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-teal-700 text-sm" x-text="formatCurrency(getDoctorProtesisTotalPagar(prof.profesional))"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-rose-600 text-sm" x-text="getDoctorLaboratoriosTotalDeduccion(prof.profesional) > 0 ? ('-' + formatCurrency(getDoctorLaboratoriosTotalDeduccion(prof.profesional))) : '$ 0,00'"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-black text-emerald-800 bg-emerald-50/40 text-base" x-text="formatCurrency(getDoctorTotalConsolidadoPagar(prof.profesional))"></td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -461,6 +521,337 @@
                                                 <i class="fa-solid fa-circle-exclamation text-xs"></i>
                                                 <span class="text-xs font-medium" x-text="r.motivo_rechazo || 'Sin detalle especificado'"></span>
                                             </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: ATENCIONES PARTICULARES -->
+            <div x-show="currentTab === 'particulares'" class="space-y-6">
+                <!-- Toolbar y Header -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-hand-holding-dollar text-sky-600"></i>
+                            <span>Liquidación de Atenciones Particulares</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Carga de prestaciones privadas por paciente con porcentaje de liquidación diferenciado de OSDE.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                        <button @click="openParticularModal()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Nueva Atención Particular</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards Particulares -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Cobrado Particular</span>
+                            <span class="p-2 bg-sky-50 text-sky-600 rounded-lg text-sm"><i class="fa-solid fa-wallet"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-900 mt-2 font-mono" x-text="formatCurrency(totalParticularesCobrado)"></p>
+                        <p class="text-xs text-slate-500 mt-1"><span class="font-bold text-sky-700" x-text="particulares.length"></span> atenciones registradas</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Honorarios Médicos (A Pagar)</span>
+                            <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm"><i class="fa-solid fa-user-doctor"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-emerald-600 mt-2 font-mono" x-text="formatCurrency(totalParticularesPagar)"></p>
+                        <p class="text-xs text-slate-500 mt-1">Calculado según % particular del médico</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Retención Clínica (LS)</span>
+                            <span class="p-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm"><i class="fa-solid fa-hospital"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-indigo-600 mt-2 font-mono" x-text="formatCurrency(totalParticularesCobrado - totalParticularesPagar)"></p>
+                        <p class="text-xs text-slate-500 mt-1">Margen administrativo centro</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Médicos Involucrados</span>
+                            <span class="p-2 bg-slate-50 text-slate-600 rounded-lg text-sm"><i class="fa-solid fa-users"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-800 mt-2 font-mono" x-text="medicosConParticularesCount"></p>
+                        <p class="text-xs text-slate-500 mt-1">Con atenciones este mes</p>
+                    </div>
+                </div>
+
+                <!-- Tabla de Atenciones Particulares -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-sky-50/70 text-sky-950 text-xs uppercase font-semibold border-b border-sky-100">
+                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">Paciente</th>
+                                    <th class="py-3 px-4">Profesional</th>
+                                    <th class="py-3 px-4">Prestación / Tratamiento</th>
+                                    <th class="py-3 px-4 text-right">Importe Cobrado</th>
+                                    <th class="py-3 px-4 text-center">% Particular</th>
+                                    <th class="py-3 px-4 text-right font-bold text-emerald-700">A Pagar al Médico</th>
+                                    <th class="py-3 px-4 text-right text-indigo-700">Retención Clínica</th>
+                                    <th class="py-3 px-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                <template x-if="particulares.length === 0">
+                                    <tr>
+                                        <td colspan="9" class="py-8 text-center text-slate-400 text-xs">
+                                            <i class="fa-regular fa-folder-open text-2xl mb-1 block"></i>
+                                            No hay atenciones particulares registradas en este período. Haz clic en "Nueva Atención Particular" para cargar una.
+                                        </td>
+                                    </tr>
+                                </template>
+                                <template x-for="p in particulares" :key="'part-'+p.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="py-3 px-4 font-mono text-xs text-slate-500" x-text="p.fecha || '-'"></td>
+                                        <td class="py-3 px-4 font-bold text-slate-900" x-text="p.paciente"></td>
+                                        <td class="py-3 px-4 font-medium text-slate-800">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800" x-text="p.profesional"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-700 text-xs" x-text="p.prestacion"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900" x-text="formatCurrency(p.importe)"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800" x-text="p.porcentaje_aplicado + '%'"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-emerald-700" x-text="formatCurrency(p.monto_profesional)"></td>
+                                        <td class="py-3 px-4 text-right font-mono text-xs text-indigo-700" x-text="formatCurrency(Number(p.importe) - Number(p.monto_profesional))"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <button @click="deleteParticular(p.id)" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition" title="Eliminar registro">
+                                                <i class="fa-solid fa-trash-can text-xs"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: GASTOS DE LABORATORIO -->
+            <div x-show="currentTab === 'laboratorio'" class="space-y-6">
+                <!-- Toolbar y Header -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-flask text-amber-600"></i>
+                            <span>Gastos de Laboratorio por Profesional</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">El profesional asume en deducción exactamente la misma proporción (%) que su liquidación pactada.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                        <button @click="openLaboratorioModal()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Nuevo Gasto de Laboratorio</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards Laboratorio -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Costo Total Laboratorios</span>
+                            <span class="p-2 bg-amber-50 text-amber-600 rounded-lg text-sm"><i class="fa-solid fa-receipt"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-900 mt-2 font-mono" x-text="formatCurrency(totalLaboratoriosGasto)"></p>
+                        <p class="text-xs text-slate-500 mt-1"><span class="font-bold text-amber-700" x-text="laboratorios.length"></span> trabajos facturados</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">A Cargo de Médicos (Deducción)</span>
+                            <span class="p-2 bg-rose-50 text-rose-600 rounded-lg text-sm"><i class="fa-solid fa-user-minus"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-rose-600 mt-2 font-mono" x-text="'-' + formatCurrency(totalLaboratoriosDeduccion)"></p>
+                        <p class="text-xs text-slate-500 mt-1">Deducido de sus liquidaciones</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">A Cargo del Centro (Clínica)</span>
+                            <span class="p-2 bg-slate-50 text-slate-600 rounded-lg text-sm"><i class="fa-solid fa-hospital"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-800 mt-2 font-mono" x-text="formatCurrency(totalLaboratoriosGasto - totalLaboratoriosDeduccion)"></p>
+                        <p class="text-xs text-slate-500 mt-1">Proporción clínica no deducida</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Médicos con Laboratorios</span>
+                            <span class="p-2 bg-slate-50 text-slate-600 rounded-lg text-sm"><i class="fa-solid fa-user-doctor"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-800 mt-2 font-mono" x-text="medicosConLaboratorioCount"></p>
+                        <p class="text-xs text-slate-500 mt-1">En el período activo</p>
+                    </div>
+                </div>
+
+                <!-- Tabla de Gastos de Laboratorio -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-amber-50/70 text-amber-950 text-xs uppercase font-semibold border-b border-amber-100">
+                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">Profesional</th>
+                                    <th class="py-3 px-4">Concepto / Trabajo</th>
+                                    <th class="py-3 px-4 text-right">Costo Total Lab.</th>
+                                    <th class="py-3 px-4 text-center">% a Cargo Médico</th>
+                                    <th class="py-3 px-4 text-right font-bold text-rose-700">Deducción al Médico</th>
+                                    <th class="py-3 px-4 text-right text-slate-600">A Cargo Clínica</th>
+                                    <th class="py-3 px-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                <template x-if="laboratorios.length === 0">
+                                    <tr>
+                                        <td colspan="8" class="py-8 text-center text-slate-400 text-xs">
+                                            <i class="fa-solid fa-flask-vial text-2xl mb-1 block"></i>
+                                            No hay gastos de laboratorio registrados en este período. Haz clic en "Nuevo Gasto de Laboratorio" para cargar uno.
+                                        </td>
+                                    </tr>
+                                </template>
+                                <template x-for="l in laboratorios" :key="'lab-'+l.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="py-3 px-4 font-mono text-xs text-slate-500" x-text="l.fecha || '-'"></td>
+                                        <td class="py-3 px-4 font-bold text-slate-900">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800" x-text="l.profesional"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-800 font-medium text-xs" x-text="l.concepto"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900" x-text="formatCurrency(l.monto_total)"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800" x-text="l.porcentaje_profesional + '%'"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-rose-600" x-text="'-' + formatCurrency(l.monto_profesional)"></td>
+                                        <td class="py-3 px-4 text-right font-mono text-xs text-slate-600" x-text="formatCurrency(Number(l.monto_total) - Number(l.monto_profesional))"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <button @click="deleteLaboratorio(l.id)" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition" title="Eliminar registro">
+                                                <i class="fa-solid fa-trash-can text-xs"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: INGRESOS POR PRÓTESIS -->
+            <div x-show="currentTab === 'protesis'" class="space-y-6">
+                <!-- Toolbar y Header -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-tooth text-teal-600"></i>
+                            <span>Ingresos por Prótesis</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Registro por paciente (búsqueda predictiva o nuevo ingreso) y profesional. Se liquida con el mismo porcentaje asignado a su costo.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                        <button @click="openProtesisModal()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Nuevo Ingreso por Prótesis</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards Prótesis -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Ingresos Prótesis</span>
+                            <span class="p-2 bg-teal-50 text-teal-600 rounded-lg text-sm"><i class="fa-solid fa-money-bill-wave"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-900 mt-2 font-mono" x-text="formatCurrency(totalProtesisCobrado)"></p>
+                        <p class="text-xs text-slate-500 mt-1"><span class="font-bold text-teal-700" x-text="protesis.length"></span> trabajos protésicos</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Honorarios Médicos (A Pagar)</span>
+                            <span class="p-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm"><i class="fa-solid fa-user-doctor"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-emerald-600 mt-2 font-mono" x-text="formatCurrency(totalProtesisPagar)"></p>
+                        <p class="text-xs text-slate-500 mt-1">Mismo % asignado a sus honorarios/costos</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Retención Clínica (LS)</span>
+                            <span class="p-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm"><i class="fa-solid fa-hospital"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-indigo-600 mt-2 font-mono" x-text="formatCurrency(totalProtesisCobrado - totalProtesisPagar)"></p>
+                        <p class="text-xs text-slate-500 mt-1">Margen centro odontológico</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Médicos con Prótesis</span>
+                            <span class="p-2 bg-slate-50 text-slate-600 rounded-lg text-sm"><i class="fa-solid fa-users"></i></span>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-800 mt-2 font-mono" x-text="medicosConProtesisCount"></p>
+                        <p class="text-xs text-slate-500 mt-1">En el período activo</p>
+                    </div>
+                </div>
+
+                <!-- Tabla de Prótesis -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-teal-50/70 text-teal-950 text-xs uppercase font-semibold border-b border-teal-100">
+                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">Paciente</th>
+                                    <th class="py-3 px-4">Profesional</th>
+                                    <th class="py-3 px-4">Trabajo</th>
+                                    <th class="py-3 px-4 text-right">Importe Cobrado</th>
+                                    <th class="py-3 px-4 text-center">% Asignado</th>
+                                    <th class="py-3 px-4 text-right font-bold text-emerald-700">A Pagar al Médico</th>
+                                    <th class="py-3 px-4 text-right text-indigo-700">Retención Clínica</th>
+                                    <th class="py-3 px-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                <template x-if="protesis.length === 0">
+                                    <tr>
+                                        <td colspan="9" class="py-8 text-center text-slate-400 text-xs">
+                                            <i class="fa-solid fa-tooth text-2xl mb-1 block"></i>
+                                            No hay ingresos por prótesis registrados en este período. Haz clic en "Nuevo Ingreso por Prótesis" para registrar uno.
+                                        </td>
+                                    </tr>
+                                </template>
+                                <template x-for="pr in protesis" :key="'prot-'+pr.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="py-3 px-4 font-mono text-xs text-slate-500" x-text="pr.fecha || '-'"></td>
+                                        <td class="py-3 px-4 font-bold text-slate-900" x-text="`${pr.paciente_apellido} ${pr.paciente_nombre}`.trim()"></td>
+                                        <td class="py-3 px-4 font-medium text-slate-800">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800" x-text="pr.profesional"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-700 font-semibold text-xs" x-text="pr.trabajo"></td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900" x-text="formatCurrency(pr.importe)"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800" x-text="pr.porcentaje_profesional + '%'"></span>
+                                        </td>
+                                        <td class="py-3 px-4 text-right font-mono font-bold text-emerald-700" x-text="formatCurrency(pr.monto_profesional)"></td>
+                                        <td class="py-3 px-4 text-right font-mono text-xs text-indigo-700" x-text="formatCurrency(Number(pr.importe) - Number(pr.monto_profesional))"></td>
+                                        <td class="py-3 px-4 text-center">
+                                            <button @click="deleteProtesis(pr.id)" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition" title="Eliminar registro">
+                                                <i class="fa-solid fa-trash-can text-xs"></i>
+                                            </button>
                                         </td>
                                     </tr>
                                 </template>
@@ -634,12 +1025,12 @@
                             <h3 class="font-bold text-slate-900 text-base" x-text="medico.nombre"></h3>
                             <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 mt-0.5 mb-4">Odontología Integral</span>
 
-                            <!-- Configurador de Porcentaje -->
-                            <div class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 mb-4 text-left">
-                                <div class="flex items-center justify-between mb-1.5">
+                            <!-- Configurador de Porcentaje OSDE y Costos -->
+                            <div class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-2.5 text-left">
+                                <div class="flex items-center justify-between mb-1">
                                     <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
                                         <i class="fa-solid fa-percent text-purple-600 text-[11px]"></i>
-                                        <span>% Honorario a Pagar:</span>
+                                        <span>% OSDE (Honorarios & Costos):</span>
                                     </label>
                                     <span class="text-xs font-mono font-bold text-purple-700" x-text="(medico.porcentaje_honorarios ?? 100) + '%'"></span>
                                 </div>
@@ -651,7 +1042,7 @@
                                         step="1"
                                         :value="medico.porcentaje_honorarios ?? 100"
                                         @change="updateDoctorPorcentaje(medico, $event.target.value)"
-                                        class="w-20 px-2.5 py-1 text-sm font-mono font-bold text-center border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white">
+                                        class="w-20 px-2 py-1 text-sm font-mono font-bold text-center border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none bg-white">
                                     <span class="text-xs text-slate-400 font-semibold">%</span>
                                     
                                     <span x-show="medico._saving" class="text-xs text-slate-500 flex items-center space-x-1">
@@ -664,14 +1055,59 @@
                                     </span>
                                 </div>
 
-                                <!-- Botones de acceso rápido de % -->
-                                <div class="flex items-center space-x-1 mt-2.5">
+                                <!-- Botones de acceso rápido de % OSDE -->
+                                <div class="flex items-center space-x-1 mt-2">
                                     <span class="text-[10px] text-slate-400 uppercase font-bold mr-1">Rápido:</span>
-                                    <template x-for="p in [50, 60, 70, 80, 100]">
+                                    <template x-for="p in [40, 50, 60, 70, 80, 100]">
                                         <button 
                                             type="button"
                                             @click="updateDoctorPorcentaje(medico, p)"
                                             :class="(medico.porcentaje_honorarios ?? 100) == p ? 'bg-purple-600 text-white font-bold' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'"
+                                            class="text-[10px] px-1.5 py-0.5 rounded transition shadow-2xs"
+                                            x-text="p + '%'">
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Configurador de Porcentaje Particular -->
+                            <div class="w-full bg-sky-50/60 border border-sky-200 rounded-xl p-3 mb-4 text-left">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="text-xs font-bold text-sky-900 flex items-center space-x-1">
+                                        <i class="fa-solid fa-hand-holding-dollar text-sky-600 text-[11px]"></i>
+                                        <span>% Atenciones Particulares:</span>
+                                    </label>
+                                    <span class="text-xs font-mono font-bold text-sky-800" x-text="(medico.porcentaje_particular ?? 100) + '%'"></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <input 
+                                        type="number" 
+                                        min="0" 
+                                        max="100" 
+                                        step="1"
+                                        :value="medico.porcentaje_particular ?? 100"
+                                        @change="updateDoctorPorcentajeParticular(medico, $event.target.value)"
+                                        class="w-20 px-2 py-1 text-sm font-mono font-bold text-center border border-sky-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none bg-white">
+                                    <span class="text-xs text-sky-600 font-semibold">%</span>
+                                    
+                                    <span x-show="medico._saving_part" class="text-xs text-slate-500 flex items-center space-x-1">
+                                        <i class="fa-solid fa-spinner animate-spin text-sky-600"></i>
+                                        <span class="text-[11px]">Guardando...</span>
+                                    </span>
+                                    <span x-show="medico._saved_part" class="text-xs text-emerald-600 font-bold flex items-center space-x-1">
+                                        <i class="fa-solid fa-check"></i>
+                                        <span class="text-[11px]">Guardado</span>
+                                    </span>
+                                </div>
+
+                                <!-- Botones de acceso rápido de % Particular -->
+                                <div class="flex items-center space-x-1 mt-2">
+                                    <span class="text-[10px] text-sky-600 uppercase font-bold mr-1">Rápido:</span>
+                                    <template x-for="p in [50, 60, 70, 80, 90, 100]">
+                                        <button 
+                                            type="button"
+                                            @click="updateDoctorPorcentajeParticular(medico, p)"
+                                            :class="(medico.porcentaje_particular ?? 100) == p ? 'bg-sky-600 text-white font-bold' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'"
                                             class="text-[10px] px-1.5 py-0.5 rounded transition shadow-2xs"
                                             x-text="p + '%'">
                                         </button>
@@ -1089,6 +1525,137 @@
                     </table>
                 </div>
 
+                <!-- Sección Consolidada (Particulares, Prótesis y Laboratorio) en Informe Individual -->
+                <div class="mb-4 space-y-3" x-show="getDoctorParticularesList(currentProfData.profesional).length > 0 || getDoctorProtesisList(currentProfData.profesional).length > 0 || getDoctorLaboratoriosList(currentProfData.profesional).length > 0">
+                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-1">
+                        Liquidaciones Adicionales y Deducciones del Período
+                    </h3>
+
+                    <!-- Particulares -->
+                    <template x-if="getDoctorParticularesList(currentProfData.profesional).length > 0">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[10px] font-bold text-sky-800 uppercase">Atenciones Particulares (Cobro Privado)</span>
+                                <span class="text-[10px] font-mono font-bold text-sky-700" x-text="'Total Méd.: ' + formatCurrency(getDoctorParticularesTotalPagar(currentProfData.profesional))"></span>
+                            </div>
+                            <table class="w-full text-left text-[9px] border border-slate-200 mb-2">
+                                <thead class="bg-sky-50 text-sky-950 font-bold">
+                                    <tr>
+                                        <th class="py-1 px-1.5">Fecha</th>
+                                        <th class="py-1 px-1.5">Paciente</th>
+                                        <th class="py-1 px-1.5">Prestación</th>
+                                        <th class="py-1 px-1.5 text-right">Cobrado</th>
+                                        <th class="py-1 px-1.5 text-center">% Part.</th>
+                                        <th class="py-1 px-1.5 text-right font-bold text-emerald-700">A Pagar</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <template x-for="p in getDoctorParticularesList(currentProfData.profesional)" :key="'prt-p-'+p.id">
+                                        <tr>
+                                            <td class="py-0.5 px-1.5 font-mono" x-text="p.fecha || '-'"></td>
+                                            <td class="py-0.5 px-1.5 font-semibold text-slate-900" x-text="p.paciente"></td>
+                                            <td class="py-0.5 px-1.5" x-text="p.prestacion"></td>
+                                            <td class="py-0.5 px-1.5 text-right font-mono" x-text="formatCurrency(p.importe)"></td>
+                                            <td class="py-0.5 px-1.5 text-center font-bold text-sky-700" x-text="p.porcentaje_aplicado + '%'"></td>
+                                            <td class="py-0.5 px-1.5 text-right font-mono font-bold text-emerald-700" x-text="formatCurrency(p.monto_profesional)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- Prótesis -->
+                    <template x-if="getDoctorProtesisList(currentProfData.profesional).length > 0">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[10px] font-bold text-teal-800 uppercase">Ingresos por Prótesis</span>
+                                <span class="text-[10px] font-mono font-bold text-teal-700" x-text="'Total Méd.: ' + formatCurrency(getDoctorProtesisTotalPagar(currentProfData.profesional))"></span>
+                            </div>
+                            <table class="w-full text-left text-[9px] border border-slate-200 mb-2">
+                                <thead class="bg-teal-50 text-teal-950 font-bold">
+                                    <tr>
+                                        <th class="py-1 px-1.5">Fecha</th>
+                                        <th class="py-1 px-1.5">Paciente</th>
+                                        <th class="py-1 px-1.5">Trabajo</th>
+                                        <th class="py-1 px-1.5 text-right">Cobrado</th>
+                                        <th class="py-1 px-1.5 text-center">% Asign.</th>
+                                        <th class="py-1 px-1.5 text-right font-bold text-emerald-700">A Pagar</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <template x-for="pr in getDoctorProtesisList(currentProfData.profesional)" :key="'prt-pr-'+pr.id">
+                                        <tr>
+                                            <td class="py-0.5 px-1.5 font-mono" x-text="pr.fecha || '-'"></td>
+                                            <td class="py-0.5 px-1.5 font-semibold text-slate-900" x-text="`${pr.paciente_apellido} ${pr.paciente_nombre}`.trim()"></td>
+                                            <td class="py-0.5 px-1.5" x-text="pr.trabajo"></td>
+                                            <td class="py-0.5 px-1.5 text-right font-mono" x-text="formatCurrency(pr.importe)"></td>
+                                            <td class="py-0.5 px-1.5 text-center font-bold text-teal-700" x-text="pr.porcentaje_profesional + '%'"></td>
+                                            <td class="py-0.5 px-1.5 text-right font-mono font-bold text-emerald-700" x-text="formatCurrency(pr.monto_profesional)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- Laboratorios -->
+                    <template x-if="getDoctorLaboratoriosList(currentProfData.profesional).length > 0">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[10px] font-bold text-amber-800 uppercase">Deducciones por Gastos de Laboratorio</span>
+                                <span class="text-[10px] font-mono font-bold text-rose-700" x-text="'Deducción Méd.: -' + formatCurrency(getDoctorLaboratoriosTotalDeduccion(currentProfData.profesional))"></span>
+                            </div>
+                            <table class="w-full text-left text-[9px] border border-slate-200 mb-2">
+                                <thead class="bg-amber-50 text-amber-950 font-bold">
+                                    <tr>
+                                        <th class="py-1 px-1.5">Fecha</th>
+                                        <th class="py-1 px-1.5">Concepto / Laboratorio</th>
+                                        <th class="py-1 px-1.5 text-right">Costo Total</th>
+                                        <th class="py-1 px-1.5 text-center">% a Cargo</th>
+                                        <th class="py-1 px-1.5 text-right font-bold text-rose-700">Deducción</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <template x-for="l in getDoctorLaboratoriosList(currentProfData.profesional)" :key="'prt-l-'+l.id">
+                                        <tr>
+                                            <td class="py-0.5 px-1.5 font-mono" x-text="l.fecha || '-'"></td>
+                                            <td class="py-0.5 px-1.5 font-semibold text-slate-900" x-text="l.concepto"></td>
+                                            <td class="py-0.5 px-1.5 text-right font-mono" x-text="formatCurrency(l.monto_total)"></td>
+                                            <td class="py-0.5 px-1.5 text-center font-bold text-amber-700" x-text="l.porcentaje_profesional + '%'"></td>
+                                            <td class="py-0.5 px-1.5 text-right font-mono font-bold text-rose-700" x-text="'-' + formatCurrency(l.monto_profesional)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- Resumen Consolidado Final del Médico -->
+                    <div class="bg-slate-100 p-2.5 rounded-lg border border-slate-300 grid grid-cols-5 gap-2 text-center text-[10px]">
+                        <div>
+                            <span class="text-slate-500 block uppercase font-bold text-[9px]">Neto OSDE</span>
+                            <span class="font-bold font-mono text-slate-800" x-text="formatCurrency(getDoctorOSDEPagar(currentProfData.profesional))"></span>
+                        </div>
+                        <div>
+                            <span class="text-sky-700 block uppercase font-bold text-[9px]">+ Particulares</span>
+                            <span class="font-bold font-mono text-sky-800" x-text="formatCurrency(getDoctorParticularesTotalPagar(currentProfData.profesional))"></span>
+                        </div>
+                        <div>
+                            <span class="text-teal-700 block uppercase font-bold text-[9px]">+ Prótesis</span>
+                            <span class="font-bold font-mono text-teal-800" x-text="formatCurrency(getDoctorProtesisTotalPagar(currentProfData.profesional))"></span>
+                        </div>
+                        <div>
+                            <span class="text-rose-600 block uppercase font-bold text-[9px]">- Laboratorio</span>
+                            <span class="font-bold font-mono text-rose-700" x-text="'-' + formatCurrency(getDoctorLaboratoriosTotalDeduccion(currentProfData.profesional))"></span>
+                        </div>
+                        <div class="bg-emerald-50 rounded p-0.5 border border-emerald-300">
+                            <span class="text-emerald-800 block uppercase font-extrabold text-[9px]">= Total Final</span>
+                            <span class="font-black font-mono text-emerald-800 text-xs" x-text="formatCurrency(getDoctorTotalConsolidadoPagar(currentProfData.profesional))"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Firmas -->
                 <div class="grid grid-cols-2 gap-8 pt-10 mt-8 border-t border-dashed border-slate-300 text-center">
                     <div>
@@ -1098,6 +1665,93 @@
                     <div>
                         <div class="w-48 border-b border-slate-400 mx-auto mb-1.5"></div>
                         <span class="text-xs text-slate-500 uppercase font-semibold">Conforme Profesional: <span class="font-bold text-slate-800" x-text="currentProfData.profesional"></span></span>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- MODO: INFORME DE RECHAZADOS OSDE -->
+        <template x-if="printMode === 'rechazados'">
+            <div class="print-page py-4">
+                <!-- Membrete con Logo -->
+                <div class="flex items-center justify-between border-b-2 border-rose-600 pb-4 mb-4">
+                    <div class="flex items-center space-x-3">
+                        <img :src="clinicLogo" alt="Logo LS Odontología" class="w-16 h-16 rounded-xl object-cover border border-slate-200">
+                        <div>
+                            <h1 class="text-xl font-black text-slate-900 uppercase tracking-tight">LS Odontología</h1>
+                            <p class="text-xs text-rose-700 font-bold uppercase tracking-wider">Informe de Auditoría &middot; Débitos y Rechazos OSDE</p>
+                            <p class="text-[11px] text-slate-500">Período: <strong class="text-slate-900" x-text="periodoActual.nombre || 'N/A'"></strong> &middot; OSDE Trámite: <span class="font-semibold" x-text="periodoActual.osde_tramite || 'S/D'"></span> &middot; Emisión: <span x-text="periodoActual.osde_fecha_emision || 'S/D'"></span></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block bg-rose-100 text-rose-800 text-[11px] font-extrabold uppercase px-2.5 py-1 rounded">Informe Débitos</span>
+                        <p class="text-[10px] text-slate-400 mt-1">Impresión: <span x-text="printDateFormatted"></span></p>
+                    </div>
+                </div>
+
+                <!-- Métricas del Informe de Rechazos -->
+                <div class="grid grid-cols-3 gap-3 mb-4 text-center">
+                    <div class="p-2.5 bg-rose-50 border border-rose-200 rounded">
+                        <span class="text-[10px] font-bold text-rose-600 uppercase block">Total Débito Facturado</span>
+                        <span class="text-base font-black font-mono text-rose-700" x-text="formatCurrency(periodoActual.total_rechazados_monto)"></span>
+                    </div>
+                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Cantidad de Prestaciones</span>
+                        <span class="text-base font-bold font-mono text-slate-800" x-text="(periodoActual.total_rechazados_cant || rechazos.length) + ' débitos'"></span>
+                    </div>
+                    <div class="p-2.5 bg-slate-50 border border-slate-200 rounded">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Filtro Aplicado</span>
+                        <span class="text-xs font-bold text-slate-800 truncate block mt-0.5" x-text="selectedProfRechazadosModal ? selectedProfRechazadosModal : 'Todos los profesionales'"></span>
+                    </div>
+                </div>
+
+                <!-- Tabla Imprimible de Rechazados -->
+                <table class="w-full text-left text-[10px] border border-slate-200 mb-6">
+                    <thead class="bg-rose-50 text-rose-950 font-bold uppercase border-b border-rose-200">
+                        <tr>
+                            <th class="py-1 px-1.5">Fecha</th>
+                            <th class="py-1 px-1.5">Paciente</th>
+                            <th class="py-1 px-1.5">Afiliado</th>
+                            <th class="py-1 px-1.5">Profesional Asignado</th>
+                            <th class="py-1 px-1.5">Código / Prestación</th>
+                            <th class="py-1 px-1.5 text-right">Monto Rechazado</th>
+                            <th class="py-1 px-1.5">Motivo de Rechazo OSDE</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        <template x-for="r in filteredRechazadosModal" :key="'prt-r-'+r.id">
+                            <tr>
+                                <td class="py-1 px-1.5 font-mono text-[9px]" x-text="r.fecha || '-'"></td>
+                                <td class="py-1 px-1.5 font-bold text-slate-900" x-text="r.paciente"></td>
+                                <td class="py-1 px-1.5 font-mono text-[9px] text-slate-600" x-text="r.afiliado || 'S/D'"></td>
+                                <td class="py-1 px-1.5 font-medium" x-text="r.profesional_asignado"></td>
+                                <td class="py-1 px-1.5">
+                                    <span class="font-mono font-bold" x-text="r.codigo"></span>
+                                    <span class="text-[9px] text-slate-500 block" x-text="r.descripcion"></span>
+                                </td>
+                                <td class="py-1 px-1.5 text-right font-mono font-bold text-rose-700" x-text="formatCurrency(r.imp_facturado)"></td>
+                                <td class="py-1 px-1.5 text-[9px] text-rose-900 font-medium" x-text="r.motivo_rechazo || 'Sin detalle especificado'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot class="bg-rose-50 font-bold border-t-2 border-rose-300">
+                        <tr>
+                            <td class="py-1.5 px-1.5 uppercase text-right" colspan="5">Subtotal Filtrado en Este Informe:</td>
+                            <td class="py-1.5 px-1.5 text-right font-mono text-rose-800 text-xs" x-text="formatCurrency(filteredRechazadosModal.reduce((acc, r) => acc + (Number(r.imp_facturado) || 0), 0))"></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- Firmas -->
+                <div class="grid grid-cols-2 gap-8 pt-8 mt-6 border-t border-dashed border-slate-300 text-center">
+                    <div>
+                        <div class="w-48 border-b border-slate-400 mx-auto mb-1.5"></div>
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Auditoría / Facturación LS</span>
+                    </div>
+                    <div>
+                        <div class="w-48 border-b border-slate-400 mx-auto mb-1.5"></div>
+                        <span class="text-xs text-slate-500 uppercase font-semibold">Dirección Médica</span>
                     </div>
                 </div>
             </div>
@@ -1152,6 +1806,401 @@
                         <span x-show="pwdForm.loading" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
                         <span x-text="pwdForm.loading ? 'Guardando...' : 'Guardar Nueva Contraseña'"></span>
                     </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 1: INFORME DE RECHAZADOS DEL MES -->
+    <div x-show="showRechazadosModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5" style="display: none;">
+        <div @click.away="showRechazadosModal = false" class="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col p-5 sm:p-6 shadow-2xl border border-slate-200 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-xs">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Informe de Prestaciones Rechazadas OSDE</h3>
+                        <p class="text-xs text-slate-500">Período: <strong class="text-slate-800" x-text="periodoActual?.nombre"></strong> &middot; Trámite: <span x-text="periodoActual?.osde_tramite || 'S/D'"></span> &middot; Fecha OSDE: <span x-text="periodoActual?.osde_fecha_emision || 'S/D'"></span></p>
+                    </div>
+                </div>
+                <button @click="showRechazadosModal = false" class="text-slate-400 hover:text-slate-600 text-2xl font-bold leading-none">&times;</button>
+            </div>
+
+            <!-- Resumen Rápido dentro del Modal -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold text-rose-600 uppercase block">Total Débito OSDE</span>
+                        <span class="text-xl font-black text-rose-700 font-mono" x-text="formatCurrency(periodoActual?.total_rechazados_monto)"></span>
+                    </div>
+                    <span class="p-2 bg-rose-100/70 text-rose-600 rounded-lg text-sm"><i class="fa-solid fa-circle-xmark"></i></span>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold text-slate-500 uppercase block">Prestaciones Rechazadas</span>
+                        <span class="text-xl font-bold text-slate-800 font-mono" x-text="(periodoActual?.total_rechazados_cant || 0) + ' débitos'"></span>
+                    </div>
+                    <span class="p-2 bg-slate-100 text-slate-600 rounded-lg text-sm"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                </div>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-bold text-slate-500 uppercase block">Médicos Afectados</span>
+                        <span class="text-xl font-bold text-slate-800 font-mono" x-text="new Set(rechazos.map(r => r.profesional_asignado)).size + ' doctores'"></span>
+                    </div>
+                    <span class="p-2 bg-slate-100 text-slate-600 rounded-lg text-sm"><i class="fa-solid fa-user-doctor"></i></span>
+                </div>
+            </div>
+
+            <!-- Filtros rápidos dentro del modal -->
+            <div class="flex flex-col sm:flex-row gap-2.5 mb-3">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                    <input type="text" x-model="searchRechazadosModal" placeholder="Buscar por paciente, afiliado, motivo o código..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                </div>
+                <div class="sm:w-56">
+                    <select x-model="selectedProfRechazadosModal" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
+                        <option value="">Todos los profesionales</option>
+                        <template x-for="p in profesionalesResumen" :key="'opt-r-'+p.id">
+                            <option :value="p.profesional" x-text="p.profesional"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabla de Rechazados con Scroll -->
+            <div class="overflow-y-auto flex-1 border border-slate-200 rounded-xl mb-4 max-h-[45vh]">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-rose-50 text-rose-900 font-bold uppercase text-[10px] border-b border-rose-200 shadow-2xs">
+                        <tr>
+                            <th class="py-2 px-3">Fecha</th>
+                            <th class="py-2 px-3">Paciente & Afiliado</th>
+                            <th class="py-2 px-3">Profesional</th>
+                            <th class="py-2 px-3">Código</th>
+                            <th class="py-2 px-3 text-right">Monto Débito</th>
+                            <th class="py-2 px-3">Motivo Oficial OSDE</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        <template x-if="filteredRechazadosModal.length === 0">
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
+                                    No se encontraron prestaciones rechazadas con ese criterio.
+                                </td>
+                            </tr>
+                        </template>
+                        <template x-for="r in filteredRechazadosModal" :key="'mod-r-'+r.id">
+                            <tr class="hover:bg-rose-50/30 transition">
+                                <td class="py-2 px-3 font-mono text-[11px] text-slate-500" x-text="r.fecha || '-'"></td>
+                                <td class="py-2 px-3">
+                                    <span class="font-bold text-slate-900 block" x-text="r.paciente"></span>
+                                    <span class="font-mono text-[10px] text-slate-500" x-text="'Afiliado: ' + r.afiliado"></span>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium" :class="r.profesional_asignado !== 'NO ASIGNADO' ? 'bg-blue-50 text-blue-700 font-semibold' : 'bg-amber-100 text-amber-800'" x-text="r.profesional_asignado"></span>
+                                </td>
+                                <td class="py-2 px-3 font-mono text-[11px]" x-text="r.codigo"></td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-rose-700" x-text="formatCurrency(r.imp_facturado)"></td>
+                                <td class="py-2 px-3">
+                                    <span class="inline-block text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 text-[11px] font-medium" x-text="r.motivo_rechazo || 'Supera tope'"></span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer y Acciones -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                <span class="text-xs text-slate-500">Mostrando <strong x-text="filteredRechazadosModal.length"></strong> de <span x-text="rechazos.length"></span> débitos</span>
+                <div class="flex items-center space-x-2">
+                    <button type="button" @click="showRechazadosModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cerrar</button>
+                    <button type="button" @click="imprimirRechazados()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-xs font-bold rounded-lg shadow flex items-center space-x-1.5 transition">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Imprimir Informe</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CARGA DE ATENCIÓN PARTICULAR -->
+    <div x-show="showParticularModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" style="display: none;">
+        <div @click.away="showParticularModal = false" class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Nueva Atención Particular</h3>
+                        <p class="text-xs text-slate-500">Liquidación privada independiente de OSDE</p>
+                    </div>
+                </div>
+                <button @click="showParticularModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <form @submit.prevent="submitParticular()" class="space-y-3.5">
+                <!-- Profesional -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Profesional Actuante *</label>
+                    <select x-model="particularForm.profesional" @change="onParticularProfChanged()" required class="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <template x-for="p in perfilesMedicos" :key="'part-m-'+p.id">
+                            <option :value="p.nombre" x-text="p.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <!-- Paciente (con autocomplete y creación) -->
+                <div class="relative">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Paciente *</label>
+                    <input 
+                        type="text" 
+                        x-model="particularForm.paciente" 
+                        @input="buscarPacientesPart($event.target.value); showPacientesDropdownPart = true;"
+                        @focus="if(particularForm.paciente.length >= 2) showPacientesDropdownPart = true;"
+                        required 
+                        placeholder="Escribe apellido o nombre del paciente..." 
+                        class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    
+                    <!-- Dropdown sugerencias -->
+                    <div x-show="showPacientesDropdownPart && pacientesSugeridosPart.length > 0" @click.away="showPacientesDropdownPart = false" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto divide-y divide-slate-100 text-xs">
+                        <template x-for="sug in pacientesSugeridosPart" :key="'sug-p-'+sug.id">
+                            <div @click="seleccionarPacientePart(sug)" class="p-2 hover:bg-sky-50 cursor-pointer flex justify-between items-center">
+                                <span class="font-bold text-slate-800" x-text="sug.nombre_completo"></span>
+                                <span class="text-[10px] text-slate-400">Existente</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
+                        <input type="date" x-model="particularForm.fecha" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Prestación / Trabajo *</label>
+                        <input type="text" x-model="particularForm.prestacion" required placeholder="Ej: Arreglo resina, Consulta" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Importe Cobrado ($) *</label>
+                        <input type="number" step="0.01" min="0" x-model="particularForm.importe" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-bold font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">% Honorario Particular</label>
+                        <div class="flex items-center space-x-1">
+                            <input type="number" min="0" max="100" step="1" x-model="particularForm.porcentaje_aplicado" required class="w-full px-3 py-2 text-sm font-bold font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <span class="text-xs text-slate-400 font-bold">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview en vivo -->
+                <div class="p-3 bg-sky-50/70 border border-sky-200 rounded-xl grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <span class="text-slate-500 block text-[11px]">A Pagar al Médico:</span>
+                        <strong class="text-emerald-700 text-sm font-mono" x-text="formatCurrency((Number(particularForm.importe) || 0) * ((Number(particularForm.porcentaje_aplicado) || 0) / 100))"></strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block text-[11px]">Retención Clínica:</span>
+                        <strong class="text-indigo-700 text-sm font-mono" x-text="formatCurrency((Number(particularForm.importe) || 0) * (1 - ((Number(particularForm.porcentaje_aplicado) || 0) / 100)))"></strong>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="showParticularModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 text-xs font-bold rounded-lg shadow transition">Guardar Atención</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CARGA DE GASTO DE LABORATORIO -->
+    <div x-show="showLaboratorioModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" style="display: none;">
+        <div @click.away="showLaboratorioModal = false" class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-flask"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Nuevo Gasto de Laboratorio</h3>
+                        <p class="text-xs text-slate-500">Deducción compartida en proporción al % de honorarios</p>
+                    </div>
+                </div>
+                <button @click="showLaboratorioModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <form @submit.prevent="submitLaboratorio()" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Profesional Responsable *</label>
+                    <select x-model="laboratorioForm.profesional" @change="onLaboratorioProfChanged()" required class="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <template x-for="p in perfilesMedicos" :key="'lab-m-'+p.id">
+                            <option :value="p.nombre" x-text="p.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
+                        <input type="date" x-model="laboratorioForm.fecha" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Concepto / Trabajo *</label>
+                        <input type="text" x-model="laboratorioForm.concepto" required placeholder="Ej: Corona cerámica, Perno" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Costo Total Laboratorio ($) *</label>
+                        <input type="number" step="0.01" min="0" x-model="laboratorioForm.monto_total" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-bold font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">% a Cargo del Médico</label>
+                        <div class="flex items-center space-x-1">
+                            <input type="number" min="0" max="100" step="1" x-model="laboratorioForm.porcentaje_profesional" required class="w-full px-3 py-2 text-sm font-bold font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <span class="text-xs text-slate-400 font-bold">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview de Proporción -->
+                <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <span class="text-slate-500 block text-[11px]">Deducción al Médico (<span x-text="laboratorioForm.porcentaje_profesional + '%'"></span>):</span>
+                        <strong class="text-rose-700 text-sm font-mono" x-text="'-' + formatCurrency((Number(laboratorioForm.monto_total) || 0) * ((Number(laboratorioForm.porcentaje_profesional) || 0) / 100))"></strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block text-[11px]">Costo Asumido Clínica:</span>
+                        <strong class="text-slate-800 text-sm font-mono" x-text="formatCurrency((Number(laboratorioForm.monto_total) || 0) * (1 - ((Number(laboratorioForm.porcentaje_profesional) || 0) / 100)))"></strong>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="showLaboratorioModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 text-xs font-bold rounded-lg shadow transition">Guardar Gasto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: CARGA DE INGRESO POR PRÓTESIS -->
+    <div x-show="showProtesisModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" style="display: none;">
+        <div @click.away="showProtesisModal = false" class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-tooth"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Nuevo Ingreso por Prótesis</h3>
+                        <p class="text-xs text-slate-500">Liquidación según % asignado a costos/honorarios</p>
+                    </div>
+                </div>
+                <button @click="showProtesisModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <form @submit.prevent="submitProtesis()" class="space-y-3.5">
+                <!-- Profesional -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Profesional *</label>
+                    <select x-model="protesisForm.profesional" @change="onProtesisProfChanged()" required class="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <template x-for="p in perfilesMedicos" :key="'prot-m-'+p.id">
+                            <option :value="p.nombre" x-text="p.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <!-- Buscador de Pacientes Existentes -->
+                <div class="relative">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1 flex justify-between">
+                        <span>Buscar Paciente Existente</span>
+                        <span class="text-[10px] text-teal-600 font-normal">Escribe para autocompletar</span>
+                    </label>
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                        <input 
+                            type="text" 
+                            x-model="protesisForm.paciente_search" 
+                            @input="buscarPacientesProtesis($event.target.value); showPacientesDropdown = true;"
+                            placeholder="Buscar paciente en el sistema..." 
+                            class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    
+                    <!-- Dropdown sugerencias -->
+                    <div x-show="showPacientesDropdown && pacientesSugeridos.length > 0" @click.away="showPacientesDropdown = false" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto divide-y divide-slate-100 text-xs">
+                        <template x-for="sug in pacientesSugeridos" :key="'sug-'+sug.id">
+                            <div @click="seleccionarPacienteProtesis(sug)" class="p-2 hover:bg-teal-50 cursor-pointer flex justify-between items-center">
+                                <div>
+                                    <span class="font-bold text-slate-800" x-text="sug.apellido"></span>
+                                    <span class="text-slate-600" x-text="', ' + sug.nombre"></span>
+                                </div>
+                                <span class="text-[10px] bg-teal-100 text-teal-800 px-1.5 py-0.2 rounded font-semibold">Seleccionar</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Campos Nombre y Apellido (Permite nuevo paciente) -->
+                <div class="grid grid-cols-2 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre *</label>
+                        <input type="text" x-model="protesisForm.paciente_nombre" required placeholder="Nombre del paciente" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Apellido *</label>
+                        <input type="text" x-model="protesisForm.paciente_apellido" required placeholder="Apellido del paciente" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                    </div>
+                </div>
+
+                <!-- Trabajo e Importe -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Trabajo *</label>
+                        <input type="text" x-model="protesisForm.trabajo" required placeholder="Ej: Corona porcelana, Prótesis acrílica" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Importe ($) *</label>
+                        <input type="number" step="0.01" min="0" x-model="protesisForm.importe" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-bold font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
+                        <input type="date" x-model="protesisForm.fecha" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">% Asignado Profesional</label>
+                        <div class="flex items-center space-x-1">
+                            <input type="number" min="0" max="100" step="1" x-model="protesisForm.porcentaje_profesional" required class="w-full px-3 py-1.5 text-sm font-bold font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            <span class="text-xs text-slate-400 font-bold">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview en vivo -->
+                <div class="p-3 bg-teal-50/70 border border-teal-200 rounded-xl grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <span class="text-slate-500 block text-[11px]">A Pagar al Médico (<span x-text="protesisForm.porcentaje_profesional + '%'"></span>):</span>
+                        <strong class="text-emerald-700 text-sm font-mono" x-text="formatCurrency((Number(protesisForm.importe) || 0) * ((Number(protesisForm.porcentaje_profesional) || 0) / 100))"></strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block text-[11px]">Retención Clínica:</span>
+                        <strong class="text-indigo-700 text-sm font-mono" x-text="formatCurrency((Number(protesisForm.importe) || 0) * (1 - ((Number(protesisForm.porcentaje_profesional) || 0) / 100)))"></strong>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="showProtesisModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 text-xs font-bold rounded-lg shadow transition">Guardar Ingreso</button>
                 </div>
             </form>
         </div>
@@ -1420,6 +2469,53 @@
                 logsAjustes: [],
                 perfilesMedicos: [],
 
+                // Nuevos Módulos: Particulares, Laboratorio, Prótesis
+                particulares: [],
+                laboratorios: [],
+                protesis: [],
+
+                // Modal Rechazados
+                showRechazadosModal: false,
+                searchRechazadosModal: '',
+                selectedProfRechazadosModal: '',
+
+                // Modal Particulares
+                showParticularModal: false,
+                showPacientesDropdownPart: false,
+                pacientesSugeridosPart: [],
+                particularForm: {
+                    profesional: '',
+                    paciente: '',
+                    fecha: new Date().toISOString().split('T')[0],
+                    prestacion: '',
+                    importe: '',
+                    porcentaje_aplicado: 100
+                },
+
+                // Modal Laboratorios
+                showLaboratorioModal: false,
+                laboratorioForm: {
+                    profesional: '',
+                    fecha: new Date().toISOString().split('T')[0],
+                    concepto: '',
+                    monto_total: '',
+                    porcentaje_profesional: 100
+                },
+
+                // Modal Prótesis
+                showProtesisModal: false,
+                showPacientesDropdownProtesis: false,
+                pacientesSugeridosProtesis: [],
+                protesisForm: {
+                    profesional: '',
+                    paciente_nombre: '',
+                    paciente_apellido: '',
+                    fecha: new Date().toISOString().split('T')[0],
+                    trabajo: '',
+                    importe: '',
+                    porcentaje_profesional: 100
+                },
+
                 async init() {
                     this.initPwa();
                     if (this.currentUser) {
@@ -1660,6 +2756,9 @@
                         this.rechazos = data.rechazos || [];
                         this.profItems = data.prof_items || [];
                         this.logsAjustes = data.logs || [];
+                        this.particulares = data.particulares || [];
+                        this.laboratorios = data.laboratorios || [];
+                        this.protesis = data.protesis || [];
                         
                         if (this.profesionalesResumen.length > 0 && !this.selectedProfName) {
                             this.selectedProfName = this.profesionalesResumen[0].profesional;
@@ -1668,6 +2767,382 @@
                         console.error("Error cargando datos del período", e);
                     } finally {
                         this.loading = false;
+                    }
+                },
+
+                // --- GETTERS & METODOS DE PORCENTAJES Y CONSOLIDACIÓN ---
+                getDoctorPorcentajeParticular(profName) {
+                    if (!profName) return 100;
+                    const found = this.perfilesMedicos.find(m => m.nombre && m.nombre.toLowerCase().trim() === profName.toLowerCase().trim());
+                    if (found && found.porcentaje_particular !== undefined && found.porcentaje_particular !== null) {
+                        return Number(found.porcentaje_particular);
+                    }
+                    return 100;
+                },
+
+                async updateDoctorPorcentajeParticular(medico, newPct) {
+                    const val = Math.max(0, Math.min(100, Number(newPct)));
+                    medico.porcentaje_particular = val;
+                    medico._saving_part = true;
+                    try {
+                        const res = await fetch('/api/profesionales/porcentaje_particular', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nombre: medico.nombre,
+                                porcentaje: val
+                            })
+                        });
+                        const result = await res.json();
+                        if (result.success) {
+                            medico._saved_part = true;
+                            setTimeout(() => { medico._saved_part = false; }, 2000);
+                        } else {
+                            alert("Error guardando porcentaje particular: " + (result.error || ""));
+                        }
+                    } catch (err) {
+                        alert("Error de conexión: " + err.message);
+                    } finally {
+                        medico._saving_part = false;
+                    }
+                },
+
+                getDoctorOSDEPagar(profName) {
+                    const prof = this.profesionalesResumen.find(p => p.profesional === profName);
+                    return prof ? this.getDoctorMontoPagar(prof) : 0;
+                },
+
+                getDoctorParticularesList(profName) {
+                    return this.particulares.filter(p => p.profesional === profName);
+                },
+
+                getDoctorParticularesTotalPagar(profName) {
+                    return this.getDoctorParticularesList(profName).reduce((acc, p) => acc + (Number(p.monto_profesional) || 0), 0);
+                },
+
+                getDoctorProtesisList(profName) {
+                    return this.protesis.filter(pr => pr.profesional === profName);
+                },
+
+                getDoctorProtesisTotalPagar(profName) {
+                    return this.getDoctorProtesisList(profName).reduce((acc, pr) => acc + (Number(pr.monto_profesional) || 0), 0);
+                },
+
+                getDoctorLaboratoriosList(profName) {
+                    return this.laboratorios.filter(l => l.profesional === profName);
+                },
+
+                getDoctorLaboratoriosTotalDeduccion(profName) {
+                    return this.getDoctorLaboratoriosList(profName).reduce((acc, l) => acc + (Number(l.monto_profesional) || 0), 0);
+                },
+
+                getDoctorTotalConsolidadoPagar(profName) {
+                    const osde = this.getDoctorOSDEPagar(profName);
+                    const part = this.getDoctorParticularesTotalPagar(profName);
+                    const prot = this.getDoctorProtesisTotalPagar(profName);
+                    const lab = this.getDoctorLaboratoriosTotalDeduccion(profName);
+                    return osde + part + prot - lab;
+                },
+
+                // --- TOTALES Y KPIS GENERALES ---
+                get totalParticularesCobrado() {
+                    return this.particulares.reduce((acc, p) => acc + (Number(p.importe) || 0), 0);
+                },
+
+                get totalParticularesPagar() {
+                    return this.particulares.reduce((acc, p) => acc + (Number(p.monto_profesional) || 0), 0);
+                },
+
+                get medicosConParticularesCount() {
+                    return new Set(this.particulares.map(p => p.profesional)).size;
+                },
+
+                get totalLaboratoriosGasto() {
+                    return this.laboratorios.reduce((acc, l) => acc + (Number(l.monto_total) || 0), 0);
+                },
+
+                get totalLaboratoriosDeduccion() {
+                    return this.laboratorios.reduce((acc, l) => acc + (Number(l.monto_profesional) || 0), 0);
+                },
+
+                get medicosConLaboratorioCount() {
+                    return new Set(this.laboratorios.map(l => l.profesional)).size;
+                },
+
+                get totalProtesisCobrado() {
+                    return this.protesis.reduce((acc, pr) => acc + (Number(pr.importe) || 0), 0);
+                },
+
+                get totalProtesisPagar() {
+                    return this.protesis.reduce((acc, pr) => acc + (Number(pr.monto_profesional) || 0), 0);
+                },
+
+                get medicosConProtesisCount() {
+                    return new Set(this.protesis.map(pr => pr.profesional)).size;
+                },
+
+                get totalGeneralPagarMedicos() {
+                    return (this.totalHonorariosMedicos || 0) + (this.totalParticularesPagar || 0) + (this.totalProtesisPagar || 0) - (this.totalLaboratoriosDeduccion || 0);
+                },
+
+                // --- MODAL 1: RECHAZADOS ---
+                openRechazadosModal() {
+                    this.searchRechazadosModal = '';
+                    this.selectedProfRechazadosModal = '';
+                    this.showRechazadosModal = true;
+                },
+
+                get filteredRechazadosModal() {
+                    return this.rechazos.filter(r => {
+                        const matchProf = !this.selectedProfRechazadosModal || r.profesional_asignado === this.selectedProfRechazadosModal;
+                        if (!matchProf) return false;
+                        if (!this.searchRechazadosModal) return true;
+                        const q = this.searchRechazadosModal.toLowerCase();
+                        return (r.paciente && r.paciente.toLowerCase().includes(q)) ||
+                               (r.afiliado && r.afiliado.toLowerCase().includes(q)) ||
+                               (r.codigo && r.codigo.toLowerCase().includes(q)) ||
+                               (r.motivo_rechazo && r.motivo_rechazo.toLowerCase().includes(q)) ||
+                               (r.profesional_asignado && r.profesional_asignado.toLowerCase().includes(q));
+                    });
+                },
+
+                async imprimirRechazados() {
+                    this.printMode = 'rechazados';
+                    await this.$nextTick();
+                    await new Promise(r => setTimeout(r, 250));
+                    window.print();
+                },
+
+                // --- MODAL 2: PARTICULARES ---
+                openParticularModal() {
+                    const defaultProf = this.perfilesMedicos.length > 0 ? this.perfilesMedicos[0].nombre : (this.selectedProfName || '');
+                    this.particularForm = {
+                        profesional: defaultProf,
+                        paciente: '',
+                        fecha: new Date().toISOString().split('T')[0],
+                        prestacion: '',
+                        importe: '',
+                        porcentaje_aplicado: this.getDoctorPorcentajeParticular(defaultProf)
+                    };
+                    this.pacientesSugeridosPart = [];
+                    this.showPacientesDropdownPart = false;
+                    this.showParticularModal = true;
+                },
+
+                onParticularProfChanged() {
+                    this.particularForm.porcentaje_aplicado = this.getDoctorPorcentajeParticular(this.particularForm.profesional);
+                },
+
+                async buscarPacientesPart(query) {
+                    if (!query || query.trim().length < 2) {
+                        this.pacientesSugeridosPart = [];
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/api/pacientes?q=${encodeURIComponent(query.trim())}`);
+                        this.pacientesSugeridosPart = await res.json();
+                    } catch (e) {
+                        console.error("Error buscando pacientes:", e);
+                    }
+                },
+
+                seleccionarPacientePart(p) {
+                    this.particularForm.paciente = p.nombre_completo;
+                    this.showPacientesDropdownPart = false;
+                },
+
+                async submitParticular() {
+                    if (!this.selectedPeriodId) {
+                        alert("Por favor selecciona un período activo primero.");
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/api/particulares', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                periodo_id: this.selectedPeriodId,
+                                fecha: this.particularForm.fecha,
+                                paciente: this.particularForm.paciente.trim(),
+                                profesional: this.particularForm.profesional,
+                                prestacion: this.particularForm.prestacion.trim(),
+                                importe: parseFloat(this.particularForm.importe) || 0,
+                                porcentaje_aplicado: parseFloat(this.particularForm.porcentaje_aplicado) || 100
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.showParticularModal = false;
+                            await this.loadPeriodData(this.selectedPeriodId);
+                        } else {
+                            alert("Error al guardar: " + (data.detail || "Error desconocido"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
+                    }
+                },
+
+                async deleteParticular(id) {
+                    if (!confirm("¿Deseas eliminar este registro de atención particular?")) return;
+                    try {
+                        const res = await fetch(`/api/particulares/${id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            await this.loadPeriodData(this.selectedPeriodId);
+                        } else {
+                            alert("Error al eliminar: " + (data.detail || "Error"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
+                    }
+                },
+
+                // --- MODAL 3: LABORATORIOS ---
+                openLaboratorioModal() {
+                    const defaultProf = this.perfilesMedicos.length > 0 ? this.perfilesMedicos[0].nombre : (this.selectedProfName || '');
+                    this.laboratorioForm = {
+                        profesional: defaultProf,
+                        fecha: new Date().toISOString().split('T')[0],
+                        concepto: '',
+                        monto_total: '',
+                        porcentaje_profesional: this.getDoctorPorcentaje(defaultProf)
+                    };
+                    this.showLaboratorioModal = true;
+                },
+
+                onLaboratorioProfChanged() {
+                    this.laboratorioForm.porcentaje_profesional = this.getDoctorPorcentaje(this.laboratorioForm.profesional);
+                },
+
+                async submitLaboratorio() {
+                    if (!this.selectedPeriodId) {
+                        alert("Por favor selecciona un período activo primero.");
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/api/laboratorios', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                periodo_id: this.selectedPeriodId,
+                                profesional: this.laboratorioForm.profesional,
+                                fecha: this.laboratorioForm.fecha,
+                                concepto: this.laboratorioForm.concepto.trim(),
+                                monto_total: parseFloat(this.laboratorioForm.monto_total) || 0,
+                                porcentaje_profesional: parseFloat(this.laboratorioForm.porcentaje_profesional) || 100
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.showLaboratorioModal = false;
+                            await this.loadPeriodData(this.selectedPeriodId);
+                        } else {
+                            alert("Error al guardar: " + (data.detail || "Error desconocido"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
+                    }
+                },
+
+                async deleteLaboratorio(id) {
+                    if (!confirm("¿Deseas eliminar este registro de gasto de laboratorio?")) return;
+                    try {
+                        const res = await fetch(`/api/laboratorios/${id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            await this.loadPeriodData(this.selectedPeriodId);
+                        } else {
+                            alert("Error al eliminar: " + (data.detail || "Error"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
+                    }
+                },
+
+                // --- MODAL 4: PRÓTESIS ---
+                openProtesisModal() {
+                    const defaultProf = this.perfilesMedicos.length > 0 ? this.perfilesMedicos[0].nombre : (this.selectedProfName || '');
+                    this.protesisForm = {
+                        profesional: defaultProf,
+                        paciente_nombre: '',
+                        paciente_apellido: '',
+                        fecha: new Date().toISOString().split('T')[0],
+                        trabajo: '',
+                        importe: '',
+                        porcentaje_profesional: this.getDoctorPorcentaje(defaultProf)
+                    };
+                    this.pacientesSugeridosProtesis = [];
+                    this.showPacientesDropdownProtesis = false;
+                    this.showProtesisModal = true;
+                },
+
+                onProtesisProfChanged() {
+                    this.protesisForm.porcentaje_profesional = this.getDoctorPorcentaje(this.protesisForm.profesional);
+                },
+
+                async buscarPacientesProtesis(query) {
+                    if (!query || query.trim().length < 2) {
+                        this.pacientesSugeridosProtesis = [];
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/api/pacientes?q=${encodeURIComponent(query.trim())}`);
+                        this.pacientesSugeridosProtesis = await res.json();
+                    } catch (e) {
+                        console.error("Error buscando pacientes:", e);
+                    }
+                },
+
+                seleccionarPacienteProtesis(p) {
+                    this.protesisForm.paciente_apellido = p.apellido;
+                    this.protesisForm.paciente_nombre = p.nombre;
+                    this.showPacientesDropdownProtesis = false;
+                },
+
+                async submitProtesis() {
+                    if (!this.selectedPeriodId) {
+                        alert("Por favor selecciona un período activo primero.");
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/api/protesis', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                periodo_id: this.selectedPeriodId,
+                                profesional: this.protesisForm.profesional,
+                                paciente_nombre: this.protesisForm.paciente_nombre.trim(),
+                                paciente_apellido: this.protesisForm.paciente_apellido.trim(),
+                                trabajo: this.protesisForm.trabajo.trim(),
+                                importe: parseFloat(this.protesisForm.importe) || 0,
+                                porcentaje_profesional: parseFloat(this.protesisForm.porcentaje_profesional) || 100,
+                                fecha: this.protesisForm.fecha
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.showProtesisModal = false;
+                            await this.loadPeriodData(this.selectedPeriodId);
+                        } else {
+                            alert("Error al guardar: " + (data.detail || "Error desconocido"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
+                    }
+                },
+
+                async deleteProtesis(id) {
+                    if (!confirm("¿Deseas eliminar este registro de ingreso por prótesis?")) return;
+                    try {
+                        const res = await fetch(`/api/protesis/${id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            await this.loadPeriodData(this.selectedPeriodId);
+                        } else {
+                            alert("Error al eliminar: " + (data.detail || "Error"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
                     }
                 },
 

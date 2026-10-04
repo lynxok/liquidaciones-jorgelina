@@ -162,6 +162,185 @@ def create_profesional(req: ProfesionalCreateRequest):
     conn.close()
     return {"success": True, "nombre": clean_nombre}
 
+class PorcentajeParticularUpdateRequest(BaseModel):
+    nombre: str
+    porcentaje: float
+
+@app.post("/api/profesionales/porcentaje_particular")
+def update_porcentaje_particular(req: PorcentajeParticularUpdateRequest):
+    """Guarda o actualiza el porcentaje de honorarios para atenciones particulares de un médico."""
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO profesionales_perfiles (nombre, porcentaje_particular, actualizado_en)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT (nombre) DO UPDATE SET porcentaje_particular = EXCLUDED.porcentaje_particular, actualizado_en = CURRENT_TIMESTAMP
+    ''', (req.nombre, req.porcentaje))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+class PacienteCreateRequest(BaseModel):
+    nombre: str
+    apellido: str
+
+@app.get("/api/pacientes")
+def get_pacientes(q: str = ""):
+    """Busca pacientes por coincidencia en nombre o apellido."""
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    q_clean = q.strip()
+    if q_clean:
+        param = f"%{q_clean}%"
+        c.execute("""
+            SELECT id, nombre, apellido, TRIM(apellido || ' ' || nombre) AS nombre_completo
+            FROM pacientes
+            WHERE apellido ILIKE ? OR nombre ILIKE ? OR (apellido || ' ' || nombre) ILIKE ? OR (nombre || ' ' || apellido) ILIKE ?
+            ORDER BY apellido ASC, nombre ASC
+            LIMIT 30
+        """, (param, param, param, param))
+    else:
+        c.execute("""
+            SELECT id, nombre, apellido, TRIM(apellido || ' ' || nombre) AS nombre_completo
+            FROM pacientes
+            ORDER BY apellido ASC, nombre ASC
+            LIMIT 50
+        """)
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+@app.post("/api/pacientes")
+def create_paciente(req: PacienteCreateRequest):
+    nom = req.nombre.strip()
+    ape = req.apellido.strip()
+    if not ape and not nom:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Debe especificar al menos un apellido o nombre."})
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, nombre, apellido FROM pacientes WHERE LOWER(apellido) = LOWER(?) AND LOWER(nombre) = LOWER(?)", (ape, nom))
+    existing = c.fetchone()
+    if existing:
+        conn.close()
+        return {"success": True, "id": existing["id"], "nombre": existing["nombre"], "apellido": existing["apellido"]}
+    c.execute("INSERT INTO pacientes (nombre, apellido) VALUES (?, ?)", (nom, ape))
+    new_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return {"success": True, "id": new_id, "nombre": nom, "apellido": ape}
+
+class ParticularCreateRequest(BaseModel):
+    periodo_id: int
+    fecha: str = ""
+    paciente: str
+    profesional: str
+    prestacion: str
+    importe: float
+    porcentaje_aplicado: float = 100.0
+
+@app.post("/api/particulares")
+def create_particular(req: ParticularCreateRequest):
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    monto_prof = round(float(req.importe) * (float(req.porcentaje_aplicado) / 100.0), 2)
+    c.execute("""
+        INSERT INTO atenciones_particulares (periodo_id, fecha, paciente, profesional, prestacion, importe, porcentaje_aplicado, monto_profesional)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (req.periodo_id, req.fecha, req.paciente.strip(), req.profesional.strip(), req.prestacion.strip(), req.importe, req.porcentaje_aplicado, monto_prof))
+    
+    # Auto registrar en pacientes si no existe
+    pac_parts = req.paciente.strip().split()
+    if pac_parts:
+        ape = pac_parts[0]
+        nom = " ".join(pac_parts[1:]) if len(pac_parts) > 1 else ""
+        c.execute("SELECT id FROM pacientes WHERE LOWER(apellido) = LOWER(?) AND LOWER(nombre) = LOWER(?)", (ape, nom))
+        if not c.fetchone():
+            c.execute("INSERT INTO pacientes (nombre, apellido) VALUES (?, ?)", (nom, ape))
+            
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@app.delete("/api/particulares/{item_id}")
+def delete_particular(item_id: int):
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM atenciones_particulares WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+class LaboratorioCreateRequest(BaseModel):
+    periodo_id: int
+    profesional: str
+    fecha: str = ""
+    concepto: str
+    monto_total: float
+    porcentaje_profesional: float = 0.0
+
+@app.post("/api/laboratorios")
+def create_laboratorio(req: LaboratorioCreateRequest):
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    monto_prof = round(float(req.monto_total) * (float(req.porcentaje_profesional) / 100.0), 2)
+    c.execute("""
+        INSERT INTO gastos_laboratorio (periodo_id, profesional, fecha, concepto, monto_total, porcentaje_profesional, monto_profesional)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (req.periodo_id, req.profesional.strip(), req.fecha, req.concepto.strip(), req.monto_total, req.porcentaje_profesional, monto_prof))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@app.delete("/api/laboratorios/{item_id}")
+def delete_laboratorio(item_id: int):
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM gastos_laboratorio WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+class ProtesisCreateRequest(BaseModel):
+    periodo_id: int
+    profesional: str
+    paciente_nombre: str
+    paciente_apellido: str
+    trabajo: str
+    importe: float
+    porcentaje_profesional: float = 0.0
+    fecha: str = ""
+
+@app.post("/api/protesis")
+def create_protesis(req: ProtesisCreateRequest):
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    monto_prof = round(float(req.importe) * (float(req.porcentaje_profesional) / 100.0), 2)
+    nom = req.paciente_nombre.strip()
+    ape = req.paciente_apellido.strip()
+    c.execute("""
+        INSERT INTO ingresos_protesis (periodo_id, profesional, paciente_nombre, paciente_apellido, trabajo, importe, porcentaje_profesional, monto_profesional, fecha)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (req.periodo_id, req.profesional.strip(), nom, ape, req.trabajo.strip(), req.importe, req.porcentaje_profesional, monto_prof, req.fecha))
+    
+    # Auto guardar o verificar en directorio de pacientes
+    if ape or nom:
+        c.execute("SELECT id FROM pacientes WHERE LOWER(apellido) = LOWER(?) AND LOWER(nombre) = LOWER(?)", (ape, nom))
+        if not c.fetchone():
+            c.execute("INSERT INTO pacientes (nombre, apellido) VALUES (?, ?)", (nom, ape))
+
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@app.delete("/api/protesis/{item_id}")
+def delete_protesis(item_id: int):
+    conn = database.get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM ingresos_protesis WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -257,6 +436,18 @@ def get_periodo_detail(periodo_id: int):
     # Logs ajustes
     c.execute("SELECT * FROM logs_ajustes WHERE periodo_id = ? ORDER BY id ASC", (periodo_id,))
     logs = c.fetchall()
+
+    # Atenciones Particulares
+    c.execute("SELECT * FROM atenciones_particulares WHERE periodo_id = ? ORDER BY id DESC", (periodo_id,))
+    particulares = c.fetchall()
+
+    # Gastos de Laboratorio
+    c.execute("SELECT * FROM gastos_laboratorio WHERE periodo_id = ? ORDER BY id DESC", (periodo_id,))
+    laboratorios = c.fetchall()
+
+    # Ingresos por Prótesis
+    c.execute("SELECT * FROM ingresos_protesis WHERE periodo_id = ? ORDER BY id DESC", (periodo_id,))
+    protesis = c.fetchall()
     
     conn.close()
     return {
@@ -264,7 +455,10 @@ def get_periodo_detail(periodo_id: int):
         "profesionales": [dict(p) for p in profs],
         "rechazos": [dict(r) for r in rechazos],
         "prof_items": [dict(pi) for pi in prof_items],
-        "logs": [dict(l) for l in logs]
+        "logs": [dict(l) for l in logs],
+        "particulares": [dict(pa) for pa in particulares],
+        "laboratorios": [dict(la) for la in laboratorios],
+        "protesis": [dict(pr) for pr in protesis]
     }
 
 @app.delete("/api/periodo/{periodo_id}")
