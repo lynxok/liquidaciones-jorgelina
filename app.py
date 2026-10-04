@@ -39,6 +39,13 @@ def get_logo():
         return FileResponse(logo_path, media_type="image/jpeg")
     return JSONResponse(status_code=404, content={"error": "Logo no encontrado"})
 
+@app.get("/static/lynx_logo_color.png")
+def get_lynx_logo():
+    logo_path = os.path.join(STATIC_DIR, "lynx_logo_color.png")
+    if os.path.exists(logo_path):
+        return FileResponse(logo_path, media_type="image/png")
+    return JSONResponse(status_code=404, content={"error": "Logo no encontrado"})
+
 @app.get("/static/icon-192.png")
 @app.get("/icon-192.png")
 def get_icon_192():
