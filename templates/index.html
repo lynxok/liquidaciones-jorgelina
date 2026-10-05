@@ -2063,74 +2063,165 @@
     </div>
 
     <!-- MODAL: CARGA DE PLANILLAS DE PARTICULARES (PDF) -->
-    <div x-show="showUploadParticularModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" style="display: none;">
-        <div @click.away="showUploadParticularModal = false" class="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200">
+    <div x-show="showUploadParticularModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" style="display: none;">
+        <div @click.away="showUploadParticularModal = false" class="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col p-5 sm:p-6 shadow-2xl border border-slate-200 overflow-y-auto">
             <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-100">
                 <div class="flex items-center space-x-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-slate-900">Cargar Planilla de Particulares (PDF)</h3>
-                        <p class="text-xs text-slate-500">Sube archivos como "Particulares Ariel.pdf" para liquidar atenciones privadas</p>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Carga de Planillas de Particulares</h3>
+                        <p class="text-xs text-slate-500">Consulta a quién ya le cargaste y sube liquidaciones individuales o masivas (.pdf)</p>
                     </div>
                 </div>
                 <button @click="showUploadParticularModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
             </div>
 
             <form @submit.prevent="submitUploadParticulares()" class="space-y-4">
-                <!-- Dropzone de selección de archivos -->
+                <!-- Zona 1: Carga Masiva Rápida (Drag & Drop con Auto-asignación) -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Archivos PDF de Particulares</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Subida Rápida Masiva</label>
                     <input type="file" id="particularesPdfInput" accept=".pdf" multiple class="hidden" @change="onParticularFilesSelected($event)">
                     
-                    <div class="border-2 border-dashed border-sky-300 hover:border-sky-400 bg-sky-50/40 rounded-xl p-5 text-center cursor-pointer transition"
+                    <div class="border-2 border-dashed border-sky-300 hover:border-sky-400 bg-sky-50/40 rounded-xl p-4 text-center cursor-pointer transition"
                          @click="document.getElementById('particularesPdfInput').click()">
-                        <i class="fa-solid fa-file-invoice-dollar text-3xl text-sky-500 mb-2"></i>
-                        <p class="text-xs font-bold text-slate-800">Seleccionar o arrastrar archivos PDF</p>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Ejemplos: "Particulares Ariel.pdf", "Particulares Jorgelina.pdf"</p>
-                        <p class="text-[10px] text-slate-400 mt-1">Puedes seleccionar varios archivos juntos</p>
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-sky-600 mb-1"></i>
+                        <p class="text-xs font-bold text-slate-800">Seleccionar o arrastrar múltiples archivos PDF</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Se asignan automáticamente según el nombre: "Particulares Ariel.pdf", "Particulares(Jorgelina).pdf"</p>
                     </div>
                 </div>
 
-                <!-- Lista de archivos seleccionados -->
-                <div x-show="selectedPartFiles.length > 0" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    <p class="text-xs font-bold text-slate-700 uppercase">Archivos listos para importar (<span x-text="selectedPartFiles.length"></span>):</p>
-                    <template x-for="(fItem, idx) in selectedPartFiles" :key="'pfile-'+idx">
-                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 flex items-center justify-between">
-                            <div class="flex items-center space-x-2.5 truncate mr-2">
-                                <i class="fa-solid fa-file-pdf text-rose-500 text-base shrink-0"></i>
-                                <div class="truncate">
-                                    <p class="text-xs font-bold text-slate-800 truncate" x-text="fItem.name"></p>
-                                    <p class="text-[10px] text-emerald-700 font-medium">
-                                        <i class="fa-solid fa-user-doctor mr-1"></i>
-                                        <span x-text="'Médico detectado: ' + fItem.detectedDoctor"></span>
-                                    </p>
+                <!-- Zona 2: Lista Completa de Profesionales del Sistema (Estilo Planilla OSDE) -->
+                <div class="bg-slate-50 rounded-xl border border-slate-200 p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-user-doctor text-[11px]"></i>
+                            </span>
+                            <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">Profesionales en el Sistema</span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 font-medium" x-text="countMedicosConParticularesCargados() + ' de ' + perfilesMedicos.length + ' liquidados'"></span>
+                    </div>
+
+                    <!-- Lista de profesionales -->
+                    <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <template x-for="medico in perfilesMedicos" :key="'part-modal-med-'+medico.id">
+                            <div class="bg-white border rounded-lg p-2.5 flex items-center justify-between transition"
+                                 :class="modalPartFilesMap[medico.id] ? 'border-sky-400 bg-sky-50/30' : (getDoctorParticularesList(medico.nombre).length > 0 ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-200')">
+                                
+                                <!-- Info Profesional y Estado -->
+                                <div class="flex items-center space-x-2.5 truncate mr-2">
+                                    <!-- Avatar -->
+                                    <div class="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                                        <template x-if="medico.avatar_url">
+                                            <img :src="medico.avatar_url" class="w-full h-full object-cover">
+                                        </template>
+                                        <template x-if="!medico.avatar_url">
+                                            <span class="text-[11px] font-bold text-slate-600" x-text="medico.nombre ? medico.nombre.charAt(0).toUpperCase() : 'M'"></span>
+                                        </template>
+                                    </div>
+
+                                    <div class="truncate">
+                                        <div class="flex items-center space-x-2">
+                                            <p class="text-xs font-bold text-slate-800 truncate" x-text="medico.nombre"></p>
+                                            <span class="text-[10px] text-slate-400 font-mono" x-text="'(' + (medico.porcentaje_particular !== undefined ? medico.porcentaje_particular : 100) + '%)'"></span>
+                                        </div>
+
+                                        <!-- Estado 1: Nuevo archivo seleccionado listo para procesar -->
+                                        <template x-if="modalPartFilesMap[medico.id]">
+                                            <p class="text-[10px] text-sky-700 font-medium flex items-center space-x-1 truncate mt-0.5">
+                                                <i class="fa-solid fa-file-pdf text-rose-500"></i>
+                                                <span class="truncate font-semibold" x-text="'Listo para subir: ' + modalPartFilesMap[medico.id].name"></span>
+                                            </p>
+                                        </template>
+
+                                        <!-- Estado 2: Ya tiene liquidación particular cargada en este período -->
+                                        <template x-if="!modalPartFilesMap[medico.id] && getDoctorParticularesList(medico.nombre).length > 0">
+                                            <p class="text-[10px] text-emerald-700 font-medium flex items-center space-x-1 truncate mt-0.5">
+                                                <i class="fa-solid fa-circle-check text-[9px]"></i>
+                                                <span x-text="'Cargado este mes: ' + getDoctorParticularesList(medico.nombre).length + ' atenciones (' + formatCurrency(getDoctorParticularesTotalPagar(medico.nombre)) + ')'"></span>
+                                            </p>
+                                        </template>
+
+                                        <!-- Estado 3: Sin cargar en este período -->
+                                        <template x-if="!modalPartFilesMap[medico.id] && getDoctorParticularesList(medico.nombre).length === 0">
+                                            <p class="text-[10px] text-slate-400 mt-0.5">Sin liquidación particular este mes</p>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Acciones por Profesional -->
+                                <div class="flex items-center space-x-1.5 shrink-0">
+                                    <!-- Input file dinámico para este médico -->
+                                    <input type="file" :id="'partDocFile_' + medico.id" accept=".pdf" class="hidden" @change="onDoctorPartFileSelected($event, medico)">
+
+                                    <!-- Si seleccionó un archivo nuevo en este modal -->
+                                    <template x-if="modalPartFilesMap[medico.id]">
+                                        <div class="flex items-center space-x-1">
+                                            <button type="button" @click="document.getElementById('partDocFile_' + medico.id).click()" class="px-2 py-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 flex items-center space-x-1" title="Cambiar archivo">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                                <span class="hidden sm:inline">Cambiar</span>
+                                            </button>
+                                            <button type="button" @click="removeDoctorPartFile(medico.id)" class="px-2 py-1 text-[11px] font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 rounded border border-rose-200 flex items-center space-x-1" title="Quitar archivo">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                                <span class="hidden sm:inline">Quitar</span>
+                                            </button>
+                                        </div>
+                                    </template>
+
+                                    <!-- Si NO ha seleccionado un archivo nuevo aún -->
+                                    <template x-if="!modalPartFilesMap[medico.id]">
+                                        <div>
+                                            <!-- Si ya estaba cargado, botón 'Reemplazar/Sumar' -->
+                                            <template x-if="getDoctorParticularesList(medico.nombre).length > 0">
+                                                <button type="button" @click="document.getElementById('partDocFile_' + medico.id).click()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300 flex items-center space-x-1">
+                                                    <i class="fa-solid fa-cloud-arrow-up text-[11px] text-sky-600"></i>
+                                                    <span>Subir PDF</span>
+                                                </button>
+                                            </template>
+                                            <!-- Si no estaba cargado, botón 'Subir PDF' destacado -->
+                                            <template x-if="getDoctorParticularesList(medico.nombre).length === 0">
+                                                <button type="button" @click="document.getElementById('partDocFile_' + medico.id).click()" class="px-2.5 py-1 text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg border border-sky-200 flex items-center space-x-1">
+                                                    <i class="fa-solid fa-upload text-[11px]"></i>
+                                                    <span>Subir PDF</span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
-                            <button type="button" @click="removeSelectedPartFile(idx)" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50" title="Quitar archivo">
-                                <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
-                        </div>
-                    </template>
+                        </template>
+                    </div>
+
+                    <!-- Botón para dar de alta nuevo médico si falta -->
+                    <div class="pt-2 border-t border-slate-200 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-500">¿Falta algún profesional en la lista?</span>
+                        <button type="button" @click="promptCrearProfesional()" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>+ Dar de alta nuevo</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Confirmación manual opcional de profesional (si subió 1 solo archivo y quiere cambiarlo) -->
-                <div x-show="selectedPartFiles.length === 1">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Confirmar Profesional Asignado</label>
-                    <select x-model="uploadPartDoctorOverride" class="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-                        <option value="">Auto-detectar desde el archivo PDF</option>
-                        <template x-for="p in perfilesMedicos" :key="'upl-p-'+p.id">
-                            <option :value="p.nombre" x-text="p.nombre"></option>
-                        </template>
-                    </select>
+                <!-- Archivos seleccionados listos para procesar (resumen) -->
+                <div x-show="totalModalPartFilesCount() > 0" class="p-3 bg-sky-50 border border-sky-200 rounded-xl flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-file-circle-check text-sky-600 text-base"></i>
+                        <span class="text-slate-800">
+                            Archivos listos para procesar: <strong class="text-sky-800" x-text="totalModalPartFilesCount()"></strong>
+                        </span>
+                    </div>
+                    <button type="button" @click="clearModalPartFiles()" class="text-slate-400 hover:text-rose-600 text-[11px]">
+                        Limpiar selección
+                    </button>
                 </div>
 
                 <div class="flex justify-between items-center pt-3 border-t border-slate-100">
-                    <button type="button" @click="showUploadParticularModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
-                    <button type="submit" :disabled="selectedPartFiles.length === 0 || uploadPartLoading" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 text-xs font-bold rounded-lg shadow disabled:opacity-50 flex items-center space-x-2 transition">
+                    <button type="button" @click="showUploadParticularModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cerrar</button>
+                    <button type="submit" :disabled="totalModalPartFilesCount() === 0 || uploadPartLoading" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 text-xs font-bold rounded-lg shadow disabled:opacity-50 flex items-center space-x-2 transition">
                         <span x-show="uploadPartLoading" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
-                        <span x-text="uploadPartLoading ? 'Procesando Planilla...' : 'Procesar e Importar'"></span>
+                        <span x-text="uploadPartLoading ? 'Procesando Planillas...' : 'Procesar e Importar (' + totalModalPartFilesCount() + ')'"></span>
                     </button>
                 </div>
             </form>
@@ -2656,6 +2747,7 @@
                 showParticularModal: false,
                 showUploadParticularModal: false,
                 uploadPartLoading: false,
+                modalPartFilesMap: {}, // { medicoId: { file: File, medico: medicoObj, name: filename } }
                 selectedPartFiles: [],
                 uploadPartDoctorOverride: '',
                 showPacientesDropdownPart: false,
@@ -3491,26 +3583,67 @@
                 },
 
                 openUploadParticularModal() {
+                    this.modalPartFilesMap = {};
                     this.selectedPartFiles = [];
                     this.uploadPartDoctorOverride = '';
                     this.uploadPartLoading = false;
                     this.showUploadParticularModal = true;
                 },
 
-                onParticularFilesSelected(event) {
-                    const files = Array.from(event.target.files);
-                    for (const file of files) {
-                        const detected = this.detectDoctorFromFilename(file.name);
-                        this.selectedPartFiles.push({
+                countMedicosConParticularesCargados() {
+                    return this.perfilesMedicos.filter(m => this.getDoctorParticularesList(m.nombre).length > 0).length;
+                },
+
+                totalModalPartFilesCount() {
+                    return Object.keys(this.modalPartFilesMap).length;
+                },
+
+                clearModalPartFiles() {
+                    this.modalPartFilesMap = {};
+                    const bulkInput = document.getElementById('particularesPdfInput');
+                    if (bulkInput) bulkInput.value = '';
+                },
+
+                onDoctorPartFileSelected(event, medico) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.modalPartFilesMap[medico.id] = {
                             file: file,
                             name: file.name,
-                            detectedDoctor: detected
-                        });
+                            medico: medico
+                        };
+                        this.modalPartFilesMap = { ...this.modalPartFilesMap };
                     }
                 },
 
-                removeSelectedPartFile(idx) {
-                    this.selectedPartFiles.splice(idx, 1);
+                removeDoctorPartFile(medicoId) {
+                    delete this.modalPartFilesMap[medicoId];
+                    this.modalPartFilesMap = { ...this.modalPartFilesMap };
+                    const input = document.getElementById('partDocFile_' + medicoId);
+                    if (input) input.value = '';
+                },
+
+                onParticularFilesSelected(event) {
+                    const files = Array.from(event.target.files);
+                    let matchedCount = 0;
+                    for (const file of files) {
+                        const detected = this.detectDoctorFromFilename(file.name);
+                        const medico = this.perfilesMedicos.find(m => m.nombre === detected);
+                        if (medico) {
+                            this.modalPartFilesMap[medico.id] = {
+                                file: file,
+                                name: file.name,
+                                medico: medico
+                            };
+                            matchedCount++;
+                        }
+                    }
+                    this.modalPartFilesMap = { ...this.modalPartFilesMap };
+                    if (matchedCount > 0) {
+                        alert(`Se auto-asignaron ${matchedCount} planilla(s) de particulares a profesionales del sistema.`);
+                    } else if (files.length > 0) {
+                        alert(`Se recibieron ${files.length} archivo(s), pero no coincidieron exactamente con los nombres de los profesionales. Puedes asignarlos con el botón "Subir PDF" junto a cada médico.`);
+                    }
                 },
 
                 async submitUploadParticulares() {
@@ -3518,33 +3651,42 @@
                         alert("Selecciona un período primero.");
                         return;
                     }
-                    if (this.selectedPartFiles.length === 0) {
+                    const filesToUpload = Object.values(this.modalPartFilesMap);
+                    if (filesToUpload.length === 0) {
                         alert("Por favor selecciona al menos un archivo PDF de particulares.");
                         return;
                     }
                     this.uploadPartLoading = true;
                     try {
-                        const formData = new FormData();
-                        formData.append('periodo_id', this.selectedPeriodId);
-                        if (this.uploadPartDoctorOverride) {
-                            formData.append('profesional', this.uploadPartDoctorOverride);
+                        let totalRecords = 0;
+                        let totalAmount = 0;
+                        let processedFiles = 0;
+
+                        // Procesar cada archivo individualmente asignando el profesional correcto
+                        for (const item of filesToUpload) {
+                            const formData = new FormData();
+                            formData.append('periodo_id', this.selectedPeriodId);
+                            formData.append('profesional', item.medico.nombre);
+                            formData.append('files', item.file);
+
+                            const res = await fetch('/api/particulares/upload', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                totalRecords += (data.total_records || 0);
+                                totalAmount += (data.total_importe || 0);
+                                processedFiles += 1;
+                            } else {
+                                console.error(`Error procesando ${item.name}:`, data.error);
+                            }
                         }
-                        for (const fItem of this.selectedPartFiles) {
-                            formData.append('files', fItem.file);
-                        }
-                        const res = await fetch('/api/particulares/upload', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.showUploadParticularModal = false;
-                            this.selectedPartFiles = [];
-                            await this.loadPeriodData(this.selectedPeriodId);
-                            alert(`¡Planilla procesada con éxito!\n\nSe importaron ${data.total_records} prestaciones particulares por un total de ${this.formatCurrency(data.total_importe)}.`);
-                        } else {
-                            alert("Error al procesar: " + (data.error || "Error desconocido"));
-                        }
+
+                        this.showUploadParticularModal = false;
+                        this.modalPartFilesMap = {};
+                        await this.loadPeriodData(this.selectedPeriodId);
+                        alert(`¡Planillas procesadas con éxito!\n\nSe importaron ${totalRecords} prestaciones particulares (${processedFiles} archivo/s) por un total de ${this.formatCurrency(totalAmount)}.`);
                     } catch (e) {
                         alert("Error de conexión: " + e.message);
                     } finally {
