@@ -176,3 +176,143 @@ def parse_professional_pdf(pdf_path: str):
         'calculated_total': sum(r['imp_final'] for r in records)
     }
     return metadata, records
+
+def parse_particulares_pdf(pdf_path: str):
+    """
+    Parsea archivos PDF de 'Liquidación a profesional - Pagos de pacientes'
+    Nombrados comúnmente como 'Particulares(Nombre del profesional).pdf' o 'Particulares Ariel.pdf'.
+    """
+    doc = fitz.open(pdf_path)
+    full_text = '\n'.join([p.get_text('text') for p in doc])
+    
+    # 1. Metadatos del encabezado
+    m_prof = re.search(r'Profesional:\s*([^\n]+)', full_text)
+    profesional = m_prof.group(1).strip() if m_prof else ''
+    
+    m_os = re.search(r'Obra social:\s*([^\n]+)', full_text)
+    obra_social = m_os.group(1).strip() if m_os else 'Todas las obras sociales'
+    
+    m_desde = re.search(r'Fecha desde:\s*([^\n\-]+)', full_text)
+    m_hasta = re.search(r'Fecha hasta:\s*([^\n]+)', full_text)
+    fecha_desde = m_desde.group(1).strip() if m_desde else ''
+    fecha_hasta = m_hasta.group(1).strip() if m_hasta else ''
+    
+    m_tot = re.search(r'Total a pagar:\s*\$\s*([\d\.,]+)', full_text)
+    header_total = float(m_tot.group(1).replace('.', '').replace(',', '.')) if m_tot else 0.0
+    
+    m_pagos = re.search(r'Pagos a liquidar:\s*(\d+)', full_text)
+    header_pagos_cant = int(m_pagos.group(1)) if m_pagos else 0
+    
+    records = []
+    
+    # 2. Extracción de filas por página
+    for page_idx, page in enumerate(doc):
+        words = page.get_text("words")
+        if not words:
+            continue
+            
+        # Agrupar palabras en filas visuales según su coordenada vertical Y
+        words_sorted = sorted(words, key=lambda w: (w[1], w[0]))
+        rows = []
+        curr_row = []
+        curr_y = None
+        
+        for w in words_sorted:
+            if curr_y is None or abs(w[1] - curr_y) <= 4:
+                curr_row.append(w)
+                curr_y = w[1] if curr_y is None else (curr_y + w[1]) / 2
+            else:
+                rows.append(sorted(curr_row, key=lambda x: x[0]))
+                curr_row = [w]
+                curr_y = w[1]
+        if curr_row:
+            rows.append(sorted(curr_row, key=lambda x: x[0]))
+            
+        for row in rows:
+            line_str = ' '.join(w[4] for w in row).strip()
+            
+            # Cada fila de atención particular debe iniciar con una fecha válida DD/MM/YYYY
+            m_date = re.match(r'^(\d{2}/\d{2}/\d{4})\b', line_str)
+            if not m_date:
+                continue
+                
+            fecha = m_date.group(1)
+            
+            # Montos en pesos ($)
+            amounts = [m.group(1) for m in re.finditer(r'\$\s*([\d\.,]+)', line_str)]
+            imp_a_pagar = float(amounts[0].replace('.', '').replace(',', '.')) if amounts else 0.0
+            iva = float(amounts[1].replace('.', '').replace(',', '.')) if len(amounts) > 1 else 0.0
+            
+            # Estado de Anulación (No / Si)
+            anul_match = re.search(r'\b(No|Si|S[íi])\s+\$', line_str, re.IGNORECASE)
+            anulado = anul_match.group(1).lower() in ('si', 'sí') if anul_match else False
+            
+            # Descartar registros anulados
+            if anulado:
+                continue
+                
+            # Comprobante
+            comp_match = re.search(r'\b(Factura|Recibo|Otro|Nota de Cr[ée]dito|Ticket)\b', line_str, re.IGNORECASE)
+            comp_str = comp_match.group(1) if comp_match else ''
+            
+            # Forma de pago
+            forma_match = re.search(r'\b(Transferencia|Efectivo|Tarjeta|D[ée]bito|Cr[ée]dito|Mercado\s*Pago|MP|Cheque)\b', line_str, re.IGNORECASE)
+            forma_str = forma_match.group(1) if forma_match else ''
+            
+            # Paciente: texto entre Fecha y Comprobante
+            paciente = ''
+            if comp_match:
+                comp_start = line_str.find(comp_match.group(0))
+                paciente = line_str[len(fecha):comp_start].strip()
+            else:
+                parts = line_str[len(fecha):].strip().split()
+                paciente = ' '.join(parts[:2]) if len(parts) >= 2 else (parts[0] if parts else '')
+                
+            # Concepto / Tratamiento: texto entre Forma de pago y Anulación/Monto
+            concepto = ''
+            if forma_match:
+                forma_end = line_str.find(forma_match.group(0)) + len(forma_match.group(0))
+                if anul_match:
+                    concepto = line_str[forma_end:anul_match.start(0)].strip()
+                elif amounts:
+                    first_dlr = line_str.find('$')
+                    concepto = line_str[forma_end:first_dlr].strip()
+                    
+            concepto = re.sub(r'^(?:[A-Z]\s+|-\s+)+', '', concepto).strip()
+            if not concepto:
+                concepto = 'PARTICULAR'
+                
+            # Comprobante completo (ej. Factura B, Recibo A, Otro B)
+            comprobante_full = comp_str
+            if comp_match and forma_match:
+                c_start = line_str.find(comp_match.group(0))
+                f_start = line_str.find(forma_match.group(0))
+                comp_slice = line_str[c_start:f_start].strip()
+                if comp_slice:
+                    comprobante_full = comp_slice
+                    
+            records.append({
+                'fecha': fecha,
+                'paciente': paciente,
+                'comprobante': comprobante_full,
+                'forma_pago': forma_str,
+                'prestacion': concepto,
+                'importe': imp_a_pagar,
+                'iva': iva,
+                'anulado': anulado,
+                'archivo': os.path.basename(pdf_path)
+            })
+
+    metadata = {
+        'profesional': profesional,
+        'obra_social': obra_social,
+        'archivo': os.path.basename(pdf_path),
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'header_total': header_total,
+        'header_pagos_cant': header_pagos_cant,
+        'total_items': len(records),
+        'calculated_total': sum(r['importe'] for r in records)
+    }
+    return metadata, records
+

@@ -484,6 +484,78 @@ def delete_periodo(periodo_id: int):
     conn.close()
     return {"success": True, "message": f"Período '{row['nombre']}' eliminado con éxito."}
 
+@app.post("/api/particulares/upload")
+async def upload_particulares_files(
+    periodo_id: int = Form(...),
+    profesional: str = Form(None),
+    files: List[UploadFile] = File(default=[])
+):
+    """Permite importar una o varias planillas PDF de atenciones particulares directamente a un período existente."""
+    import parser as parser_mod
+    import tempfile
+    
+    if not files:
+        return JSONResponse(status_code=400, content={"success": False, "error": "No se recibieron archivos PDF."})
+        
+    temp_dir = tempfile.mkdtemp()
+    results = []
+    total_imported_records = 0
+    total_imported_amount = 0.0
+    
+    try:
+        for f in files:
+            if not f.filename or not f.filename.lower().endswith(".pdf"):
+                continue
+                
+            file_path = os.path.join(temp_dir, f.filename)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(f.file, buffer)
+                
+            # Parsear PDF de particulares
+            p_meta, p_records = parser_mod.parse_particulares_pdf(file_path)
+            
+            # Determinar profesional asignado
+            if profesional and profesional.strip():
+                doc_name = profesional.strip()
+            else:
+                doc_name, _ = matcher.resolve_doctor_profile(p_meta.get("profesional", ""), f.filename)
+                
+            # Guardar registros en base de datos
+            save_info = database.save_particulares_records(
+                periodo_id=periodo_id,
+                records=p_records,
+                profesional=doc_name,
+                archivo=f.filename
+            )
+            
+            # Persistir archivo de respaldo en Supabase
+            try:
+                with open(file_path, "rb") as rf:
+                    database.store_periodo_file(periodo_id, "PARTICULAR", f.filename, rf.read(), profesional=doc_name)
+            except Exception as e_st:
+                print("Aviso al almacenar respaldo de particular:", e_st)
+                
+            results.append({
+                "archivo": f.filename,
+                "profesional": doc_name,
+                "count": save_info["count"],
+                "total_importe": save_info["total_importe"]
+            })
+            total_imported_records += save_info["count"]
+            total_imported_amount += save_info["total_importe"]
+            
+        return {
+            "success": True,
+            "total_records": total_imported_records,
+            "total_importe": round(total_imported_amount, 2),
+            "files_processed": len(results),
+            "detalles": results
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
 @app.post("/api/process")
 async def process_month(
     request: Request,
@@ -491,7 +563,8 @@ async def process_month(
     use_existing: bool = Form(False),
     overwrite_existing: bool = Form(False),
     osde_file: UploadFile = File(default=None),
-    files: List[UploadFile] = File(default=[])
+    files: List[UploadFile] = File(default=[]),
+    particulares_files: List[UploadFile] = File(default=[])
 ):
     try:
         # Normalizar flags booleanos si vienen como string
@@ -499,6 +572,8 @@ async def process_month(
             use_existing = use_existing.lower() in ("true", "1", "t")
         if isinstance(overwrite_existing, str):
             overwrite_existing = overwrite_existing.lower() in ("true", "1", "t")
+
+        part_files_paths = []
 
         if use_existing:
             # Use current project directory PDFs
@@ -509,6 +584,10 @@ async def process_month(
             prof_files_paths = [f for f in sorted(glob.glob(os.path.join(BASE_DIR, "liquidacion*.pdf"))) if os.path.basename(f) != "LiquidacionOSDE.pdf"]
             if not prof_files_paths:
                 return {"success": False, "error": "No se encontraron archivos de liquidación de profesionales en la carpeta."}
+                
+            # Archivos locales de particulares si existen (ej. test_particulares_ariel.pdf)
+            for f in sorted(glob.glob(os.path.join(BASE_DIR, "*particular*.pdf"))):
+                part_files_paths.append(f)
         else:
             import tempfile
             upload_dir = os.path.join(tempfile.gettempdir(), "uploads", period_name.replace(" ", "_"))
@@ -524,8 +603,7 @@ async def process_month(
                     shutil.copyfileobj(osde_file.file, buffer)
                 target_osde = osde_path
 
-            # 2. Revisar archivos en `files` (tanto subida múltiple clásica como subida por profesional)
-            # También soportar campos dinámicos prof_file_<nombre>
+            # 2. Revisar form_data dinámico para prof_file_<nombre> y part_file_<nombre>
             form_data = await request.form()
             for key, val in form_data.items():
                 if key.startswith("prof_file_") and hasattr(val, "filename") and val.filename:
@@ -533,15 +611,34 @@ async def process_month(
                     with open(p_path, "wb") as buffer:
                         shutil.copyfileobj(val.file, buffer)
                     prof_files_paths.append(p_path)
+                elif key.startswith("part_file_") and hasattr(val, "filename") and val.filename:
+                    part_p_path = os.path.join(upload_dir, val.filename)
+                    with open(part_p_path, "wb") as buffer:
+                        shutil.copyfileobj(val.file, buffer)
+                    part_files_paths.append(part_p_path)
 
+            # 3. Lista particulares_files explícita
+            for pf in particulares_files:
+                if not pf.filename:
+                    continue
+                part_path = os.path.join(upload_dir, pf.filename)
+                with open(part_path, "wb") as buffer:
+                    shutil.copyfileobj(pf.file, buffer)
+                part_files_paths.append(part_path)
+
+            # 4. Archivos genéricos en `files` (clasificación inteligente por nombre)
             for f in files:
                 if not f.filename:
                     continue
                 target_path = os.path.join(upload_dir, f.filename)
                 with open(target_path, "wb") as buffer:
                     shutil.copyfileobj(f.file, buffer)
-                if not target_osde and "OSDE" in f.filename.upper():
+                    
+                fn_upper = f.filename.upper()
+                if not target_osde and "OSDE" in fn_upper and "PARTICULAR" not in fn_upper:
                     target_osde = target_path
+                elif "PARTICULAR" in fn_upper:
+                    part_files_paths.append(target_path)
                 else:
                     prof_files_paths.append(target_path)
                     
@@ -550,8 +647,14 @@ async def process_month(
             if not prof_files_paths:
                 return {"success": False, "error": "Debe incluir al menos una liquidación de profesional (.pdf)."}
                 
-        # Run reconciliation
-        res = matcher.reconcile_period(period_name, target_osde, prof_files_paths, overwrite_existing=overwrite_existing)
+        # Run reconciliation with particulares
+        res = matcher.reconcile_period(
+            period_name,
+            target_osde,
+            prof_files_paths,
+            overwrite_existing=overwrite_existing,
+            particulares_paths=part_files_paths
+        )
         return {"success": True, "periodo_id": res["periodo_id"]}
         
     except Exception as e:

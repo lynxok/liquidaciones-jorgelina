@@ -1,13 +1,74 @@
+import os
+import re
+import unicodedata
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
 import nomenclator
 import database
 
-def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], parser_mod=None, overwrite_existing: bool = False) -> Dict[str, Any]:
+def normalize_text(text: str) -> str:
+    text = unicodedata.normalize('NFKD', text or '').encode('ASCII', 'ignore').decode('utf-8')
+    return re.sub(r'[^a-zA-Z0-9]', ' ', text.lower()).strip()
+
+def resolve_doctor_profile(raw_name: str = "", filename: str = "", conn=None) -> Tuple[str, float]:
+    """Identifica al profesional cruzando el encabezado del PDF o el nombre de archivo con la tabla de profesionales."""
+    close_at_end = False
+    if conn is None:
+        conn = database.get_db_connection()
+        close_at_end = True
+    c = conn.cursor()
+    c.execute("SELECT id, nombre, porcentaje_particular FROM profesionales_perfiles")
+    db_medicos = c.fetchall()
+    if close_at_end:
+        conn.close()
+
+    norm_raw = normalize_text(raw_name)
+    clean_fn = re.sub(r'(?i)particulares?|liquidaci[oó]n|\.pdf|[_\-\(\)]', ' ', filename)
+    norm_file = normalize_text(clean_fn)
+
+    # 1. Coincidencia exacta con nombre en BD
+    for m in db_medicos:
+        if normalize_text(m['nombre']) == norm_raw:
+            return m['nombre'], float(m.get('porcentaje_particular') or 100)
+
+    # 2. Coincidencia por tokens (ej. 'ariel' o 'masolo' o 'jorgelina' o 'andres')
+    for m in db_medicos:
+        tokens = [t for t in normalize_text(m['nombre']).split() if len(t) >= 3]
+        for t in tokens:
+            if (t in norm_file.split()) or (norm_raw and t in norm_raw.split()):
+                return m['nombre'], float(m.get('porcentaje_particular') or 100)
+
+    # 3. Mapeo de apodos o nombres cortos frecuentes
+    nicknames = {
+        'aye': 'AYELEN',
+        'tati': 'TATIANA',
+        'jor': 'JORGELINA',
+        'ariel': 'ARIEL',
+        'silvia': 'SILVIA',
+        'andres': 'ANDRES'
+    }
+    for nick, target in nicknames.items():
+        if nick in norm_file.split() or nick in norm_raw.split():
+            for m in db_medicos:
+                if target in normalize_text(m['nombre']).upper():
+                    return m['nombre'], float(m.get('porcentaje_particular') or 100)
+
+    chosen = raw_name.strip().upper() if raw_name.strip() else (norm_file.strip().upper() or 'PROFESIONAL')
+    return chosen, 100.0
+
+def reconcile_period(
+    period_name: str,
+    osde_path: str,
+    prof_paths: List[str],
+    parser_mod=None,
+    overwrite_existing: bool = False,
+    particulares_paths: List[str] = None
+) -> Dict[str, Any]:
     if parser_mod is None:
         import parser as parser_mod
         
     osde_meta, osde_items = parser_mod.parse_osde_pdf(osde_path)
+
     
     # 1. Validar que el archivo de OSDE corresponda al periodo indicado
     osde_fec = osde_meta.get('fecha_emision', '') # e.g. '24/08/2026'
@@ -322,6 +383,28 @@ def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], pa
     conn.commit()
     conn.close()
     
+    # Process and save particulares planillas if provided
+    particulares_summary = []
+    if particulares_paths:
+        for part_path in particulares_paths:
+            if not os.path.exists(part_path):
+                continue
+            try:
+                p_meta, p_records = parser_mod.parse_particulares_pdf(part_path)
+                doc_name, porc = resolve_doctor_profile(p_meta.get('profesional', ''), os.path.basename(part_path))
+                save_res = database.save_particulares_records(periodo_id, p_records, doc_name, os.path.basename(part_path))
+                particulares_summary.append({
+                    'archivo': os.path.basename(part_path),
+                    'profesional': doc_name,
+                    'count': save_res['count'],
+                    'total_importe': save_res['total_importe']
+                })
+                # Persistir archivo binario
+                with open(part_path, 'rb') as f:
+                    database.store_periodo_file(periodo_id, 'PARTICULAR', os.path.basename(part_path), f.read(), profesional=doc_name)
+            except Exception as e_part:
+                print(f"Aviso: error procesando planilla particular {part_path}:", e_part)
+
     # Store original PDF files in Supabase for 90 days
     try:
         if os.path.exists(osde_path):
@@ -341,6 +424,7 @@ def reconcile_period(period_name: str, osde_path: str, prof_paths: List[str], pa
         'prof_summaries': list(prof_summaries.values()),
         'rechazos_osde': [o for o in osde_items if o['estado'] == 'RECHAZADO'],
         'logs_ajustes': logs_ajustes,
+        'particulares_summary': particulares_summary,
         'totales': {
             'osde_liquidado': tot_osde_liquidado,
             'prof_declarado': tot_prof_declarado,

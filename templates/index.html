@@ -548,10 +548,14 @@
                         </h2>
                         <p class="text-xs text-slate-500 mt-0.5">Carga de prestaciones privadas por paciente con porcentaje de liquidación diferenciado de OSDE.</p>
                     </div>
-                    <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
-                        <button @click="openParticularModal()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm flex items-center space-x-2 transition">
+                    <div class="flex items-center space-x-2.5 w-full sm:w-auto justify-end">
+                        <button @click="openUploadParticularModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-sm flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-file-arrow-up"></i>
+                            <span>Cargar Planilla PDF</span>
+                        </button>
+                        <button @click="openParticularModal()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-sm flex items-center space-x-2 transition">
                             <i class="fa-solid fa-plus"></i>
-                            <span>Nueva Atención Particular</span>
+                            <span>Carga Manual</span>
                         </button>
                     </div>
                 </div>
@@ -605,6 +609,7 @@
                                     <th class="py-3 px-4">Paciente</th>
                                     <th class="py-3 px-4">Profesional</th>
                                     <th class="py-3 px-4">Prestación / Tratamiento</th>
+                                    <th class="py-3 px-4">Comprobante / Pago</th>
                                     <th class="py-3 px-4 text-right">Importe Cobrado</th>
                                     <th class="py-3 px-4 text-center">% Particular</th>
                                     <th class="py-3 px-4 text-right font-bold text-emerald-700">A Pagar al Médico</th>
@@ -615,9 +620,9 @@
                             <tbody class="divide-y divide-slate-200">
                                 <template x-if="particulares.length === 0">
                                     <tr>
-                                        <td colspan="9" class="py-8 text-center text-slate-400 text-xs">
+                                        <td colspan="10" class="py-8 text-center text-slate-400 text-xs">
                                             <i class="fa-regular fa-folder-open text-2xl mb-1 block"></i>
-                                            No hay atenciones particulares registradas en este período. Haz clic en "Nueva Atención Particular" para cargar una.
+                                            No hay atenciones particulares registradas en este período. Haz clic en "Cargar Planilla PDF" o "Carga Manual" para agregar.
                                         </td>
                                     </tr>
                                 </template>
@@ -628,7 +633,20 @@
                                         <td class="py-3 px-4 font-medium text-slate-800">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800" x-text="p.profesional"></span>
                                         </td>
-                                        <td class="py-3 px-4 text-slate-700 text-xs" x-text="p.prestacion"></td>
+                                        <td class="py-3 px-4 text-slate-700 text-xs">
+                                            <span class="font-medium" x-text="p.prestacion"></span>
+                                            <template x-if="p.archivo">
+                                                <span class="text-[9px] text-slate-400 block font-mono truncate max-w-[140px]" :title="p.archivo" x-text="p.archivo"></span>
+                                            </template>
+                                        </td>
+                                        <td class="py-3 px-4 text-xs">
+                                            <div class="flex flex-col">
+                                                <span class="font-semibold text-slate-700" x-text="p.comprobante || '-'"></span>
+                                                <template x-if="p.forma_pago">
+                                                    <span class="text-[10px] text-sky-700 font-medium" x-text="p.forma_pago"></span>
+                                                </template>
+                                            </div>
+                                        </td>
                                         <td class="py-3 px-4 text-right font-mono font-bold text-slate-900" x-text="formatCurrency(p.importe)"></td>
                                         <td class="py-3 px-4 text-center">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800" x-text="p.porcentaje_aplicado + '%'"></span>
@@ -2044,6 +2062,81 @@
         </div>
     </div>
 
+    <!-- MODAL: CARGA DE PLANILLAS DE PARTICULARES (PDF) -->
+    <div x-show="showUploadParticularModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" style="display: none;">
+        <div @click.away="showUploadParticularModal = false" class="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-100">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Cargar Planilla de Particulares (PDF)</h3>
+                        <p class="text-xs text-slate-500">Sube archivos como "Particulares Ariel.pdf" para liquidar atenciones privadas</p>
+                    </div>
+                </div>
+                <button @click="showUploadParticularModal = false" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <form @submit.prevent="submitUploadParticulares()" class="space-y-4">
+                <!-- Dropzone de selección de archivos -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Archivos PDF de Particulares</label>
+                    <input type="file" id="particularesPdfInput" accept=".pdf" multiple class="hidden" @change="onParticularFilesSelected($event)">
+                    
+                    <div class="border-2 border-dashed border-sky-300 hover:border-sky-400 bg-sky-50/40 rounded-xl p-5 text-center cursor-pointer transition"
+                         @click="document.getElementById('particularesPdfInput').click()">
+                        <i class="fa-solid fa-file-invoice-dollar text-3xl text-sky-500 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-800">Seleccionar o arrastrar archivos PDF</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Ejemplos: "Particulares Ariel.pdf", "Particulares Jorgelina.pdf"</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Puedes seleccionar varios archivos juntos</p>
+                    </div>
+                </div>
+
+                <!-- Lista de archivos seleccionados -->
+                <div x-show="selectedPartFiles.length > 0" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <p class="text-xs font-bold text-slate-700 uppercase">Archivos listos para importar (<span x-text="selectedPartFiles.length"></span>):</p>
+                    <template x-for="(fItem, idx) in selectedPartFiles" :key="'pfile-'+idx">
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 flex items-center justify-between">
+                            <div class="flex items-center space-x-2.5 truncate mr-2">
+                                <i class="fa-solid fa-file-pdf text-rose-500 text-base shrink-0"></i>
+                                <div class="truncate">
+                                    <p class="text-xs font-bold text-slate-800 truncate" x-text="fItem.name"></p>
+                                    <p class="text-[10px] text-emerald-700 font-medium">
+                                        <i class="fa-solid fa-user-doctor mr-1"></i>
+                                        <span x-text="'Médico detectado: ' + fItem.detectedDoctor"></span>
+                                    </p>
+                                </div>
+                            </div>
+                            <button type="button" @click="removeSelectedPartFile(idx)" class="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50" title="Quitar archivo">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Confirmación manual opcional de profesional (si subió 1 solo archivo y quiere cambiarlo) -->
+                <div x-show="selectedPartFiles.length === 1">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Confirmar Profesional Asignado</label>
+                    <select x-model="uploadPartDoctorOverride" class="w-full px-3 py-2 text-xs font-semibold border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <option value="">Auto-detectar desde el archivo PDF</option>
+                        <template x-for="p in perfilesMedicos" :key="'upl-p-'+p.id">
+                            <option :value="p.nombre" x-text="p.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+                    <button type="button" @click="showUploadParticularModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" :disabled="selectedPartFiles.length === 0 || uploadPartLoading" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 text-xs font-bold rounded-lg shadow disabled:opacity-50 flex items-center space-x-2 transition">
+                        <span x-show="uploadPartLoading" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
+                        <span x-text="uploadPartLoading ? 'Procesando Planilla...' : 'Procesar e Importar'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL 3: CARGA DE GASTO DE LABORATORIO -->
     <div x-show="showLaboratorioModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" style="display: none;">
         <div @click.away="showLaboratorioModal = false" class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200">
@@ -2402,6 +2495,61 @@
                     </div>
                 </div>
 
+                <!-- SECCIÓN 3: PLANILLAS DE ATENCIONES PARTICULARES -->
+                <div class="bg-sky-50/60 rounded-xl border border-sky-200 p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center text-xs font-bold">3</span>
+                            <span class="text-xs font-bold text-sky-950 uppercase tracking-wider">Planillas de Particulares (.pdf)</span>
+                        </div>
+                        <span class="text-[11px] text-sky-700 font-medium bg-sky-100 px-2 py-0.5 rounded-full" x-text="countUploadedProfPartFiles() + ' asignados'"></span>
+                    </div>
+
+                    <!-- Botón de carga masiva rápida para particulares -->
+                    <input type="file" id="bulkPartFileInput" accept=".pdf" multiple class="hidden" @change="onBulkPartFilesChanged($event)">
+                    <div class="border border-dashed border-sky-300 hover:border-sky-400 bg-white rounded-lg p-2.5 text-center cursor-pointer transition"
+                         @click="document.getElementById('bulkPartFileInput').click()">
+                        <p class="text-xs font-bold text-sky-800">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1 text-sky-600"></i>
+                            Cargar PDFs de Particulares (auto-asignación)
+                        </p>
+                        <p class="text-[10px] text-slate-400">Archivos como "Particulares Ariel.pdf", "Particulares(Jorgelina).pdf"</p>
+                    </div>
+
+                    <!-- Lista de profesionales con particulares cargados -->
+                    <div class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        <template x-for="medico in perfilesMedicos" :key="'part-up-'+medico.id">
+                            <div class="bg-white border rounded-lg p-2 flex items-center justify-between transition text-xs"
+                                 :class="profPartFilesMap[medico.id] ? 'border-sky-300 bg-sky-50/30' : 'border-slate-200'">
+                                <div class="truncate mr-2">
+                                    <span class="font-bold text-slate-800" x-text="medico.nombre"></span>
+                                    <template x-if="profPartFilesMap[medico.id]">
+                                        <span class="text-[10px] text-emerald-700 font-medium block truncate" x-text="'✓ ' + profPartFilesMap[medico.id].file.name"></span>
+                                    </template>
+                                </div>
+                                <div class="shrink-0">
+                                    <input type="file" :id="'profPartFile_' + medico.id" accept=".pdf" class="hidden" @change="onProfPartFileChanged($event, medico)">
+                                    <template x-if="!profPartFilesMap[medico.id]">
+                                        <button type="button" @click="document.getElementById('profPartFile_' + medico.id).click()" class="px-2 py-0.5 text-[11px] font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 rounded border border-sky-200">
+                                            + Particulares
+                                        </button>
+                                    </template>
+                                    <template x-if="profPartFilesMap[medico.id]">
+                                        <div class="flex items-center space-x-1">
+                                            <button type="button" @click="document.getElementById('profPartFile_' + medico.id).click()" class="px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-100 rounded border border-slate-200" title="Cambiar">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                            </button>
+                                            <button type="button" @click="removeProfPartFile(medico.id)" class="px-1.5 py-0.5 text-[10px] text-rose-600 hover:bg-rose-50 rounded border border-rose-200" title="Quitar">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
                 <!-- Opciones avanzadas de procesamiento -->
                 <div class="pt-2 border-t border-slate-100 space-y-1.5">
                     <label class="flex items-center space-x-2 text-xs text-slate-700 font-medium cursor-pointer">
@@ -2465,6 +2613,7 @@
                 // Estado de Subida Modular
                 selectedOsdeFile: null,
                 profFilesMap: {}, // { medicoId: { file: File, medico: medicoObj } }
+                profPartFilesMap: {}, // { medicoId: { file: File, medico: medicoObj } }
                 overwriteExistingPeriod: true, // Por defecto true para permitir recargar/reprocesar meses
                 selectedUploadMonth: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][new Date().getMonth()],
                 selectedUploadYear: new Date().getFullYear(),
@@ -2503,8 +2652,12 @@
                 searchRechazadosModal: '',
                 selectedProfRechazadosModal: '',
 
-                // Modal Particulares
+                // Modal Particulares Manual y PDF
                 showParticularModal: false,
+                showUploadParticularModal: false,
+                uploadPartLoading: false,
+                selectedPartFiles: [],
+                uploadPartDoctorOverride: '',
                 showPacientesDropdownPart: false,
                 pacientesSugeridosPart: [],
                 particularForm: {
@@ -3264,16 +3417,154 @@
                     return Object.keys(this.profFilesMap).length;
                 },
 
+                countUploadedProfPartFiles() {
+                    return Object.keys(this.profPartFilesMap).length;
+                },
+
+                onProfPartFileChanged(event, medico) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.profPartFilesMap[medico.id] = {
+                            file: file,
+                            medico: medico
+                        };
+                        this.profPartFilesMap = { ...this.profPartFilesMap };
+                    }
+                },
+
+                removeProfPartFile(medicoId) {
+                    delete this.profPartFilesMap[medicoId];
+                    this.profPartFilesMap = { ...this.profPartFilesMap };
+                    const input = document.getElementById('profPartFile_' + medicoId);
+                    if (input) input.value = '';
+                },
+
+                detectDoctorFromFilename(filename) {
+                    if (!filename) return 'Auto-detectar desde el archivo';
+                    const clean = filename.toLowerCase()
+                        .replace(/particulares?/g, '')
+                        .replace(/liquidaci[oó]n/g, '')
+                        .replace(/\.pdf/g, '')
+                        .replace(/[_\-\(\)]/g, ' ')
+                        .trim();
+                    
+                    for (const m of this.perfilesMedicos) {
+                        const tokens = m.nombre.toLowerCase().split(/\s+/).filter(t => t.length >= 3);
+                        for (const t of tokens) {
+                            if (clean.includes(t)) return m.nombre;
+                        }
+                    }
+                    const nicks = {
+                        'aye': 'AYELEN',
+                        'tati': 'TATIANA',
+                        'jor': 'JORGELINA',
+                        'ariel': 'MASOLO ARIEL',
+                        'silvia': 'SILVIA',
+                        'andres': 'ANDRES'
+                    };
+                    for (const [nick, target] of Object.entries(nicks)) {
+                        if (clean.includes(nick)) {
+                            const found = this.perfilesMedicos.find(m => m.nombre.toUpperCase().includes(target));
+                            if (found) return found.nombre;
+                        }
+                    }
+                    return 'Auto-detectar desde el archivo';
+                },
+
+                onBulkPartFilesChanged(event) {
+                    const files = Array.from(event.target.files);
+                    let matchedCount = 0;
+                    for (const file of files) {
+                        const detectedName = this.detectDoctorFromFilename(file.name);
+                        const medico = this.perfilesMedicos.find(m => m.nombre === detectedName);
+                        if (medico) {
+                            this.profPartFilesMap[medico.id] = { file: file, medico: medico };
+                            matchedCount++;
+                        }
+                    }
+                    this.profPartFilesMap = { ...this.profPartFilesMap };
+                    if (matchedCount > 0) {
+                        alert(`Se auto-asignaron ${matchedCount} planilla(s) de particulares por nombre.`);
+                    } else if (files.length > 0) {
+                        alert(`Se cargaron los archivos. Puedes asignarlos con el botón "+ Particulares" al profesional correspondiente.`);
+                    }
+                },
+
+                openUploadParticularModal() {
+                    this.selectedPartFiles = [];
+                    this.uploadPartDoctorOverride = '';
+                    this.uploadPartLoading = false;
+                    this.showUploadParticularModal = true;
+                },
+
+                onParticularFilesSelected(event) {
+                    const files = Array.from(event.target.files);
+                    for (const file of files) {
+                        const detected = this.detectDoctorFromFilename(file.name);
+                        this.selectedPartFiles.push({
+                            file: file,
+                            name: file.name,
+                            detectedDoctor: detected
+                        });
+                    }
+                },
+
+                removeSelectedPartFile(idx) {
+                    this.selectedPartFiles.splice(idx, 1);
+                },
+
+                async submitUploadParticulares() {
+                    if (!this.selectedPeriodId) {
+                        alert("Selecciona un período primero.");
+                        return;
+                    }
+                    if (this.selectedPartFiles.length === 0) {
+                        alert("Por favor selecciona al menos un archivo PDF de particulares.");
+                        return;
+                    }
+                    this.uploadPartLoading = true;
+                    try {
+                        const formData = new FormData();
+                        formData.append('periodo_id', this.selectedPeriodId);
+                        if (this.uploadPartDoctorOverride) {
+                            formData.append('profesional', this.uploadPartDoctorOverride);
+                        }
+                        for (const fItem of this.selectedPartFiles) {
+                            formData.append('files', fItem.file);
+                        }
+                        const res = await fetch('/api/particulares/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showUploadParticularModal = false;
+                            this.selectedPartFiles = [];
+                            await this.loadPeriodData(this.selectedPeriodId);
+                            alert(`¡Planilla procesada con éxito!\n\nSe importaron ${data.total_records} prestaciones particulares por un total de ${this.formatCurrency(data.total_importe)}.`);
+                        } else {
+                            alert("Error al procesar: " + (data.error || "Error desconocido"));
+                        }
+                    } catch (e) {
+                        alert("Error de conexión: " + e.message);
+                    } finally {
+                        this.uploadPartLoading = false;
+                    }
+                },
+
                 totalFilesToProcessSummary() {
                     const profCount = this.countUploadedProfFiles();
+                    const partCount = this.countUploadedProfPartFiles();
                     const hasOsde = this.selectedOsdeFile ? 1 : 0;
                     if (this.useExistingFolderFiles) {
                         return "Modo desarrollo: usando PDFs locales del servidor";
                     }
-                    if (hasOsde === 0 && profCount === 0) {
+                    if (hasOsde === 0 && profCount === 0 && partCount === 0) {
                         return "Ningún archivo seleccionado todavía";
                     }
-                    return `${hasOsde} liquidación OSDE + ${profCount} planilla(s) de profesionales seleccionada(s)`;
+                    let s = `${hasOsde} liquidación OSDE + ${profCount} planilla(s) OSDE`;
+                    if (partCount > 0) s += ` + ${partCount} planilla(s) particulares`;
+                    return s;
                 },
 
                 formatBytes(bytes) {
@@ -3329,8 +3620,14 @@
                             // Adjuntar cada archivo de profesional con su identificador
                             Object.values(this.profFilesMap).forEach(item => {
                                 if (item && item.file) {
-                                    // Enviamos como campo individual para preservar asignación exacta
                                     formData.append(`prof_file_${item.medico.nombre}`, item.file);
+                                }
+                            });
+
+                            // Adjuntar cada archivo particular de profesional con su identificador
+                            Object.values(this.profPartFilesMap).forEach(item => {
+                                if (item && item.file) {
+                                    formData.append(`part_file_${item.medico.nombre}`, item.file);
                                 }
                             });
                         }
@@ -3346,6 +3643,7 @@
                             // Limpiar archivos seleccionados
                             this.removeOsdeFile();
                             this.profFilesMap = {};
+                            this.profPartFilesMap = {};
                             await this.loadPeriodos();
                             this.selectedPeriodId = result.periodo_id;
                             await this.loadPeriodData(this.selectedPeriodId);

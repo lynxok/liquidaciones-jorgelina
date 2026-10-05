@@ -230,9 +230,19 @@ def init_db():
             importe NUMERIC NOT NULL DEFAULT 0,
             porcentaje_aplicado NUMERIC DEFAULT 100,
             monto_profesional NUMERIC DEFAULT 0,
+            forma_pago TEXT,
+            comprobante TEXT,
+            archivo TEXT,
             creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    try:
+        c.execute("ALTER TABLE atenciones_particulares ADD COLUMN IF NOT EXISTS forma_pago TEXT")
+        c.execute("ALTER TABLE atenciones_particulares ADD COLUMN IF NOT EXISTS comprobante TEXT")
+        c.execute("ALTER TABLE atenciones_particulares ADD COLUMN IF NOT EXISTS archivo TEXT")
+    except Exception:
+        pass
+
 
     # Table: gastos_laboratorio
     c.execute('''
@@ -330,6 +340,70 @@ def purge_expired_files():
     conn.commit()
     conn.close()
 
+def save_particulares_records(periodo_id: int, records: list, profesional: str, archivo: str = "", conn=None):
+    """Inserta en bloque las atenciones particulares provenientes de un PDF, vinculando el porcentaje del profesional."""
+    close_at_end = False
+    if conn is None:
+        conn = get_db_connection()
+        close_at_end = True
+    c = conn.cursor()
+    
+    # Obtener porcentaje particular del profesional
+    c.execute("SELECT porcentaje_particular FROM profesionales_perfiles WHERE LOWER(nombre) = LOWER(?)", (profesional,))
+    p_row = c.fetchone()
+    porcentaje = float(p_row['porcentaje_particular']) if (p_row and p_row.get('porcentaje_particular') is not None) else 100.0
+    
+    # Si ya se había importado este archivo para este profesional en este período, limpiar previos para evitar duplicación
+    if archivo:
+        c.execute("DELETE FROM atenciones_particulares WHERE periodo_id = ? AND LOWER(profesional) = LOWER(?) AND archivo = ?", (periodo_id, profesional, archivo))
+        
+    inserted_count = 0
+    total_importe = 0.0
+    
+    for r in records:
+        fec = r.get('fecha', '')
+        pac = r.get('paciente', '').strip()
+        comp = r.get('comprobante', '')
+        forma = r.get('forma_pago', '')
+        prest = r.get('prestacion', '').strip() or 'PARTICULAR'
+        imp = float(r.get('importe', 0.0))
+        monto_prof = round(imp * (porcentaje / 100.0), 2)
+        
+        c.execute("""
+            INSERT INTO atenciones_particulares (
+                periodo_id, fecha, paciente, profesional, prestacion,
+                importe, porcentaje_aplicado, monto_profesional,
+                forma_pago, comprobante, archivo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            periodo_id, fec, pac, profesional, prest,
+            imp, porcentaje, monto_prof,
+            forma, comp, archivo
+        ))
+        inserted_count += 1
+        total_importe += imp
+        
+        # Sincronizar directorio de pacientes
+        if pac:
+            pac_parts = pac.split()
+            ape = pac_parts[0]
+            nom = " ".join(pac_parts[1:]) if len(pac_parts) > 1 else ""
+            c.execute("SELECT id FROM pacientes WHERE LOWER(apellido) = LOWER(?) AND LOWER(nombre) = LOWER(?)", (ape, nom))
+            if not c.fetchone():
+                c.execute("INSERT INTO pacientes (nombre, apellido) VALUES (?, ?)", (nom, ape))
+                
+    if close_at_end:
+        conn.commit()
+        conn.close()
+        
+    return {
+        'count': inserted_count,
+        'total_importe': round(total_importe, 2),
+        'porcentaje_aplicado': porcentaje,
+        'profesional': profesional
+    }
+
 if __name__ == "__main__":
     init_db()
     print("Database initialized successfully on Supabase!")
+
