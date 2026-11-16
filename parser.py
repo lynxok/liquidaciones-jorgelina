@@ -28,8 +28,8 @@ def parse_osde_pdf(pdf_path: str):
             m_fec = re.search(r'Fecha de Emisi[óo]n:\s*(\d{2}/\d{2}/\d{4})', text_page)
             if m_fec: fecha_emision = m_fec.group(1)
 
-        # OSDE item anchors: 10-digit ID starting with 15 in column x < 50
-        anchors = [w for w in words if w[0] < 50 and re.match(r'^15\d{8}$', w[4])]
+        # OSDE item anchors: 10-digit ID in column x < 50 (e.g. 15xxxxxxxx, 16xxxxxxxx)
+        anchors = [w for w in words if w[0] < 50 and re.match(r'^\d{10}$', w[4])]
         anchors = sorted(anchors, key=lambda w: w[1])
         
         for idx, anc in enumerate(anchors):
